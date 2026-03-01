@@ -44,6 +44,8 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Methodology: methodology.md
+  - Knowledge Graph: knowledge-graph.md
   - Installation:
       - Overview: installation/index.md
       - Phase 1 Setup: installation/Phase1.md
