@@ -32,8 +32,8 @@
                ▼
     ┌─────────────────────┐
     │   Container Registry│
-    │   (local: kind-     │
-    │    registry:5000)   │
+    │   (Gitea built-in   │
+    │    OCI registry)    │
     └─────────────────────┘
                │ ArgoCD pulls manifest
                ▼
@@ -74,20 +74,21 @@
 
 ### 2. Container Registry
 
-**Local:** `kind-registry` — a `registry:2` Docker container on the host, connected to the kind Docker network.
+**Local:** idpbuilder's Gitea instance includes a **built-in OCI-compliant registry**. No separate container needed — idpbuilder also configures containerd on the kind node to trust it automatically.
 
 | Access point | Address |
 |---|---|
-| From host (push) | `localhost:5000` |
-| From inside cluster (pull) | `kind-registry:5000` |
+| From host (push) | `cnoe.localtest.me:8443` |
+| From inside cluster (pull) | `cnoe.localtest.me:8443` (containerd rewrites to internal service) |
+| Image format | `cnoe.localtest.me:8443/giteaadmin/<image>:<tag>` |
 
 **Future AWS swap:**
 
 | | Local | AWS |
 |---|---|---|
-| Registry | `kind-registry:5000` | `<account>.dkr.ecr.<region>.amazonaws.com` |
-| Auth | none | IRSA / IAM role |
-| Push from CI | `docker push localhost:5000/...` | `docker push <ecr-url>/...` |
+| Registry | Gitea OCI (`cnoe.localtest.me:8443`) | `<account>.dkr.ecr.<region>.amazonaws.com` |
+| Auth | Gitea credentials | IRSA / IAM role |
+| Push from CI | `docker push cnoe.localtest.me:8443/giteaadmin/...` | `docker push <ecr-url>/...` |
 
 ### 3. Gitea Actions Runner
 
@@ -95,7 +96,7 @@ A `act_runner` instance registered with Gitea. Executes `.gitea/workflows/*.yaml
 
 **Local:** Run as a Docker container on the host machine.
 - Has Docker socket access → can build and push images
-- Reaches `localhost:5000` to push to kind-registry
+- Reaches Gitea OCI registry at `https://cnoe.localtest.me:8443`
 - Reaches Gitea at `https://cnoe.localtest.me:8443/gitea`
 
 ### 4. CI Workflow (`.gitea/workflows/ci.yaml`)
@@ -104,7 +105,7 @@ Trigger: push to `main` branch of `sample-backend-api-app`
 
 Steps:
 1. Checkout code
-2. Build Docker image → tag as `kind-registry:5000/sample-backend-api:<git-sha>`
+2. Build Docker image → tag as `cnoe.localtest.me:8443/giteaadmin/sample-backend-api:<git-sha>`
 3. Push image to registry
 4. Clone `sample-backend-gitops` repo
 5. Update `image:` field in `manifests/deployment.yaml` with new tag
@@ -153,9 +154,8 @@ spec:
 
 In order of dependency:
 
-1. **Enable Gitea Actions** — currently `ENABLED = false` in app.ini
-2. **Local container registry** — `kind-registry:5000` does not exist yet
-3. **Gitea Actions runner** — no runner registered
+1. **Enable Gitea Actions** — currently `ENABLED = false` in app.ini (handled by `gitea-config/override.yaml`)
+2. **Gitea Actions runner** — no runner registered
 4. **`sample-backend-gitops` repo** — does not exist in Gitea yet
 5. **Kubernetes manifests** — Deployment + Service for the app
 6. **CI workflow** — `.gitea/workflows/ci.yaml` in app repo

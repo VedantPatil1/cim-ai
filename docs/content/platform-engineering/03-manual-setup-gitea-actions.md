@@ -41,50 +41,33 @@ The gitops repo contents will be pushed via `cnoe://` protocol when packaged as 
 
 ---
 
-## Step 3 — Set up the Local Container Registry
+## Step 3 — Container Registry
 
-These commands run on your Mac (the host), not inside the cluster.
+No setup required. idpbuilder's Gitea instance includes a **built-in OCI registry** and automatically configures containerd on the kind node to trust it.
 
-```bash
-# 1. Start registry container
-docker run -d \
-  -p 5000:5000 \
-  --name kind-registry \
-  --restart=always \
-  registry:2
-
-# 2. Connect it to the kind Docker network
-#    This lets the kind node reach it as kind-registry:5000
-docker network connect kind kind-registry
-
-# 3. Configure containerd on the kind node to trust it
-docker exec localdev-control-plane bash -c "
-cat > /etc/containerd/certs.d/kind-registry:5000/hosts.toml << 'EOF'
-[host.\"http://kind-registry:5000\"]
-  capabilities = [\"pull\", \"resolve\"]
-  skip_verify = true
-EOF
-"
-
-# 4. Restart containerd on the kind node
-docker exec localdev-control-plane systemctl restart containerd
+Images are pushed to and pulled from:
+```
+cnoe.localtest.me:8443/giteaadmin/<image>:<tag>
 ```
 
 **Verify:**
 ```bash
-# Push a test image from host
+# Get Gitea credentials
+idpbuilder get secrets
+
+# Tag and push a test image from host
 docker pull alpine:3.18
-docker tag alpine:3.18 localhost:5000/test:latest
-docker push localhost:5000/test:latest
+docker tag alpine:3.18 cnoe.localtest.me:8443/giteaadmin/test:latest
+docker push cnoe.localtest.me:8443/giteaadmin/test:latest
 
 # Verify pull from inside cluster
-kubectl run test-pull --image=kind-registry:5000/test:latest --restart=Never
+kubectl run test-pull --image=cnoe.localtest.me:8443/giteaadmin/test:latest --restart=Never
 kubectl get pod test-pull
 kubectl delete pod test-pull
 ```
 
 **What this maps to as a stack:**
-The registry container and containerd config become a package. The containerd config is a DaemonSet or init Job that patches the kind node. This is the trickiest part to automate.
+Nothing — idpbuilder handles this automatically. No separate package needed.
 
 ---
 
@@ -143,7 +126,7 @@ docker run -d \
 ```
 
 > The `-v /var/run/docker.sock:/var/run/docker.sock` mount gives the runner Docker access so it can build and push images.
-> `--network host` lets it reach `localhost:5000` (kind-registry) for pushes.
+> `--network host` lets it reach `cnoe.localtest.me:8443` (Gitea OCI registry) for image pushes.
 
 **Verify the runner is registered:**
 Gitea → Site Administration → Actions → Runners — the runner should appear as Online.
@@ -199,7 +182,7 @@ jobs:
 
       - name: Build image
         run: |
-          IMAGE=kind-registry:5000/sample-backend-api:${{ github.sha }}
+          IMAGE=cnoe.localtest.me:8443/giteaadmin/sample-backend-api:${{ github.sha }}
           docker build -f Dockerfile.python -t $IMAGE .
           docker push $IMAGE
 
@@ -211,7 +194,7 @@ jobs:
           git clone https://giteaAdmin:${GITEA_TOKEN}@cnoe.localtest.me:8443/gitea/giteaAdmin/sample-backend-gitops.git
           cd sample-backend-gitops
           # Update image tag in deployment.yaml
-          sed -i "s|image: kind-registry:5000/sample-backend-api:.*|image: kind-registry:5000/sample-backend-api:${IMAGE_TAG}|" manifests/deployment.yaml
+          sed -i "s|image: cnoe.localtest.me:8443/giteaadmin/sample-backend-api:.*|image: cnoe.localtest.me:8443/giteaadmin/sample-backend-api:${IMAGE_TAG}|" manifests/deployment.yaml
           git config user.email "ci@idp.local"
           git config user.name "CI Runner"
           git add manifests/deployment.yaml
@@ -261,10 +244,10 @@ Verify in ArgoCD UI: https://cnoe.localtest.me:8443/argocd
 
 | Manual step | Stack component |
 |---|---|
-| Enable Gitea Actions (admin UI) | `-c gitea:cnoe-infra/gitea-config/override.yaml` |
+| Enable Gitea Actions (admin UI) | `-c gitea:control-system-infrastructure/cnoe-stack/gitea-config/override.yaml` |
 | Create gitops repo | `cnoe://manifests` in package, idpbuilder creates Gitea repo |
-| Start kind-registry | `cnoe-infra/local-registry/` package (Job + containerd patch) |
-| Register + run act_runner | `cnoe-infra/gitea-runner/` package (Deployment + init container) |
+| Container registry | Handled automatically by idpbuilder (Gitea built-in OCI registry) |
+| Register + run act_runner | Host Docker — see `cnoe-stack/packages/gitea-runner/README.md` |
 | Push app repo to Gitea | Developer workflow (not automated by platform) |
 | Add CI workflow | Part of app repo — developer owned |
-| Create ArgoCD Application | `cnoe-infra/sample-app-gitops/app.yaml` package |
+| Create ArgoCD Application | `cnoe-stack/packages/sample-app-gitops/app.yaml` (future package) |

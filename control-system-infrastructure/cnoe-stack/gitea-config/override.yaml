@@ -1,0 +1,17 @@
+# Gitea configuration override — applied at cluster creation via:
+#   idpbuilder create -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml
+#
+# Merges with idpbuilder's baked Gitea manifests by matching kind: Secret + name: my-gitea-inline-config.
+# Each stringData key maps to an app.ini section name, converted to app.ini format by config_environment.sh.
+#
+# IMPORTANT: This is immutable after cluster creation. Changing it requires rebuilding the cluster.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-gitea-inline-config
+  namespace: gitea
+type: Opaque
+stringData:
+  actions: |-
+    ENABLED=true

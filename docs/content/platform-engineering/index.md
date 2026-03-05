@@ -19,9 +19,8 @@ Spin up the full platform locally with one command:
 ```bash
 idpbuilder create \
   --use-path-routing \
-  -c gitea:./cnoe-infra/gitea-config/override.yaml \
-  -p ./cnoe-infra/packages/local-registry \
-  -p ./cnoe-infra/packages/gitea-runner
+  -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml \
+  -p ./control-system-infrastructure/cnoe-stack/packages/local-registry
 ```
 
-See `cnoe-infra/README.md` in the repository root for service URLs and access details.
+Then register the Gitea Actions runner (host Docker). See `control-system-infrastructure/README.md` for the full bootstrap sequence including pre-requisites.
