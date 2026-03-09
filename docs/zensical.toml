@@ -1,0 +1,52 @@
+[project]
+site_name        = "CIM-AI"
+site_description = "Agentic AI-based Cloud Infrastructure Management"
+site_author      = "Vedant Patil"
+docs_dir         = "content"
+site_dir         = "site"
+
+nav = [
+  { Home = "index.md" },
+  { Methodology = "methodology.md" },
+  { "Knowledge Graph" = "knowledge-graph.md" },
+  { Installation = [
+    { Overview = "installation/index.md" },
+    { "Phase 1 Setup" = "installation/Phase1.md" },
+  ]},
+  { "Platform Engineering" = [
+    { Overview = "platform-engineering/index.md" },
+    { "idpbuilder & CNOE" = "platform-engineering/01-idpbuilder-and-cnoe.md" },
+    { "CD Workflow Design" = "platform-engineering/02-cd-workflow-design.md" },
+    { "Manual Setup (Gitea Actions)" = "platform-engineering/03-manual-setup-gitea-actions.md" },
+  ]},
+  { Security = [
+    { "Requirements & Enforcement" = "security/index.md" },
+    { "Implementation Guide" = "security/implementation.md" },
+  ]},
+]
+
+[project.theme]
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.expand",
+  "navigation.top",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.footer",
+  "search.highlight",
+  "content.code.copy",
+  "content.code.annotate",
+  "content.tabs.link",
+]
+
+[[project.theme.palette]]
+scheme      = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme      = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
