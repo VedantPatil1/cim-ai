@@ -1,0 +1,39 @@
+# RBAC for the platform-workflows CronJob.
+#
+# The CronJob syncs workflow files to all Gitea repos via the Gitea API.
+# It needs to read the gitea-credential Secret to authenticate API calls.
+
+---
+# Role in gitea namespace — read gitea-credential Secret
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: platform-workflows-reads-credential
+  namespace: gitea
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: platform-workflows
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["gitea-credential"]
+    verbs: ["get"]
+
+---
+# RoleBinding in gitea namespace — cross-namespace: SA is in platform-workflows
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: platform-workflows-reads-gitea-credential
+  namespace: gitea
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: platform-workflows
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: platform-workflows-reads-credential
+subjects:
+  - kind: ServiceAccount
+    name: platform-workflows
+    namespace: platform-workflows

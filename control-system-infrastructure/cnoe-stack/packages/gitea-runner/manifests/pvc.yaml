@@ -1,0 +1,25 @@
+# PersistentVolumeClaim for the runner's config and data.
+#
+# Persisting /data means:
+#   - config.yaml (runner registration) survives pod restarts
+#   - The register-runner init container skips re-registration if config.yaml exists
+#
+# If the cluster is rebuilt from scratch, delete this PVC to force re-registration:
+#   kubectl delete pvc gitea-runner-data -n gitea-runner
+#
+# kind clusters use the local-path-provisioner (standard-rwo storage class).
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitea-runner-data
+  namespace: gitea-runner
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: gitea-runner
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

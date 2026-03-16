@@ -1,0 +1,30 @@
+# ArgoCD Application — Platform Workflow Enforcement
+#
+# Deploys a CronJob that propagates standard Gitea Actions workflows
+# (secret scanning, sandbox lifecycle) to every repo in the Gitea instance.
+# This is the enforcement mechanism — repos cannot opt out of secret scanning.
+#
+# Deployed as part of the control system bootstrap:
+#   idpbuilder create ... -p ./control-system-infrastructure/cnoe-stack/packages/platform-workflows
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-workflows
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: cnoe://manifests
+    targetRevision: HEAD
+    path: "."
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-workflows
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

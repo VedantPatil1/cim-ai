@@ -1,10 +1,17 @@
 # Gitea configuration override — applied at cluster creation via:
-#   idpbuilder create -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml
+#   idpbuilder create --use-path-routing \
+#     -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml
 #
-# Merges with idpbuilder's baked Gitea manifests by matching kind: Secret + name: my-gitea-inline-config.
-# Each stringData key maps to an app.ini section name, converted to app.ini format by config_environment.sh.
+# IMPORTANT: idpbuilder's -c flag REPLACES the entire matching resource,
+# not just the changed key. This file must include the full base config from
+# idpbuilder's baked manifest (gitea-10.6.0 Helm chart), with only the
+# actions section changed from ENABLED=false to ENABLED=true.
 #
-# IMPORTANT: This is immutable after cluster creation. Changing it requires rebuilding the cluster.
+# Base config extracted from: strings /usr/local/bin/idpbuilder | grep -A50 "my-gitea-inline-config"
+#
+# This is immutable after cluster creation. Changing it requires rebuilding the cluster:
+#   kind delete cluster --name localdev
+#   idpbuilder create ...
 
 apiVersion: v1
 kind: Secret
@@ -13,5 +20,52 @@ metadata:
   namespace: gitea
 type: Opaque
 stringData:
-  actions: |-
-    ENABLED=true
+  _generals_: ""
+
+  # ── Gitea Actions — CHANGED: false → true ───────────────────────────────────
+  actions: ENABLED=true
+
+  # ── All other keys kept identical to idpbuilder base (gitea-10.6.0) ─────────
+  cache: |-
+    ADAPTER=memory
+    HOST=
+
+  database: DB_TYPE=sqlite3
+
+  indexer: ISSUE_INDEXER_TYPE=db
+
+  metrics: ENABLED=false
+
+  queue: |-
+    CONN_STR=
+    TYPE=level
+
+  repository: ROOT=/data/git/gitea-repositories
+
+  security: INSTALL_LOCK=true
+
+  # Server section uses --use-path-routing values:
+  #   DOMAIN / SSH_DOMAIN = cnoe.localtest.me (no subdomain)
+  #   ROOT_URL            = https://cnoe.localtest.me:8443/gitea
+  # These values are hard-coded for the local idpbuilder default.
+  # (The base baked manifest uses Go templates that idpbuilder processes;
+  # since the override replaces the full resource, we supply resolved values.)
+  server: |-
+    APP_DATA_PATH=/data
+    DOMAIN=cnoe.localtest.me
+    ENABLE_PPROF=false
+    HTTP_PORT=3000
+    PROTOCOL=http
+    ROOT_URL=https://cnoe.localtest.me:8443/gitea
+    SSH_DOMAIN=cnoe.localtest.me
+    SSH_LISTEN_PORT=2222
+    SSH_PORT=32222
+    START_SSH_SERVER=true
+
+  session: |-
+    PROVIDER=memory
+    PROVIDER_CONFIG=
+
+  webhook: |-
+    ALLOWED_HOST_LIST=private
+    SKIP_TLS_VERIFY=true

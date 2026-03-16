@@ -1,0 +1,209 @@
+# ConfigMap containing the standard Gitea Actions workflow files.
+# The sync CronJob reads these and installs them into every Gitea repo.
+#
+# Two workflows are enforced:
+#   secret-scan.yaml        — runs gitleaks on every push and PR (non-optional)
+#   sandbox-lifecycle.yaml  — manages sandbox environments for repos that opt in
+#                             via .cim/sandbox.yaml (no-op in repos without it)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-workflow-definitions
+  namespace: platform-workflows
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: platform-workflows
+data:
+  # ─── secret-scan.yaml ────────────────────────────────────────────────────────
+  # Runs gitleaks on every push and pull_request event.
+  # Fails the workflow if any secret pattern is detected, blocking merges.
+  # Uses Docker to run the gitleaks image — requires the runner to have Docker access.
+  # ─────────────────────────────────────────────────────────────────────────────
+  secret-scan.yaml: |
+    name: Secret Scanning
+
+    on:
+      push:
+        branches: ['**']
+      pull_request:
+        types: [opened, synchronize, reopened]
+
+    jobs:
+      gitleaks:
+        name: Detect secrets with gitleaks
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout (full history for accurate diff scanning)
+            uses: actions/checkout@v4
+            with:
+              fetch-depth: 0
+
+          - name: Run gitleaks
+            run: |
+              docker run --rm \
+                -v "$(pwd):/repo" \
+                zricethezav/gitleaks:latest detect \
+                  --source /repo \
+                  --report-format sarif \
+                  --report-path /repo/gitleaks-report.sarif \
+                  --redact \
+                  --exit-code 1
+            # Exit code 1 = secrets found → workflow fails, PR cannot merge.
+            # The SARIF report is written to the workspace for review.
+
+          - name: Upload SARIF report on failure
+            if: failure()
+            uses: actions/upload-artifact@v4
+            with:
+              name: gitleaks-sarif
+              path: gitleaks-report.sarif
+
+  # ─── sandbox-lifecycle.yaml ──────────────────────────────────────────────────
+  # Manages ephemeral sandbox environments for AI agent testing.
+  #
+  # Opt-in: the repo must contain .cim/sandbox.yaml.
+  # When a push to main updates .cim/sandbox.yaml → creates/updates the
+  # ArgoCD ApplicationSet for this repo (PR generator creates one sandbox
+  # environment per open PR).
+  # When a PR is closed → ArgoCD automatically prunes the sandbox app.
+  #
+  # Requires the ARGOCD_SANDBOX_TOKEN Gitea org secret to be set.
+  # See sandbox-environments package for setup instructions.
+  # ─────────────────────────────────────────────────────────────────────────────
+  sandbox-lifecycle.yaml: |
+    name: Sandbox Environment Lifecycle
+
+    on:
+      push:
+        branches: [main]
+        paths:
+          - '.cim/sandbox.yaml'
+
+    jobs:
+      check-opt-in:
+        name: Check sandbox opt-in
+        runs-on: ubuntu-latest
+        outputs:
+          enabled: ${{ steps.check.outputs.enabled }}
+        steps:
+          - uses: actions/checkout@v4
+          - id: check
+            run: |
+              if [ -f .cim/sandbox.yaml ]; then
+                echo "enabled=true" >> $GITHUB_OUTPUT
+                echo "Sandbox opt-in detected (.cim/sandbox.yaml present)"
+              else
+                echo "enabled=false" >> $GITHUB_OUTPUT
+                echo "No .cim/sandbox.yaml — sandbox disabled for this repo"
+              fi
+
+      ensure-applicationset:
+        name: Create or update sandbox ApplicationSet
+        needs: check-opt-in
+        if: needs.check-opt-in.outputs.enabled == 'true'
+        runs-on: ubuntu-latest
+        env:
+          ARGOCD_SERVER: https://cnoe.localtest.me:8443/argocd
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_SANDBOX_TOKEN }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          REPO_OWNER: ${{ github.event.repository.owner.login }}
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Build ApplicationSet JSON
+            run: |
+              # jq constructs the ApplicationSet spec with proper escaping.
+              # {{number}} and {{head_sha}} are ArgoCD template variables —
+              # they are string literals here, not shell variables.
+              APPSET_JSON=$(jq -n \
+                --arg name "sandbox-${REPO_NAME}" \
+                --arg repo_name "${REPO_NAME}" \
+                --arg repo_owner "${REPO_OWNER}" \
+                '{
+                  apiVersion: "argoproj.io/v1alpha1",
+                  kind: "ApplicationSet",
+                  metadata: {
+                    name: $name,
+                    namespace: "argocd",
+                    labels: {
+                      "cim.ai/managed-by": "sandbox-lifecycle",
+                      "cim.ai/repo": $repo_name
+                    }
+                  },
+                  spec: {
+                    generators: [{
+                      pullRequest: {
+                        gitea: {
+                          api: "https://cnoe.localtest.me:8443/gitea",
+                          owner: $repo_owner,
+                          repo: $repo_name,
+                          insecure: true,
+                          tokenRef: {
+                            secretName: "gitea-admin-token",
+                            key: "token"
+                          }
+                        },
+                        requeueAfterSeconds: 60
+                      }
+                    }],
+                    template: {
+                      metadata: {
+                        name: ("sandbox-" + $repo_name + "-pr-{{number}}"),
+                        labels: {
+                          "cim.ai/sandbox": "true",
+                          "cim.ai/repo": $repo_name,
+                          "cim.ai/pr": "{{number}}"
+                        }
+                      },
+                      spec: {
+                        project: "sandbox",
+                        source: {
+                          repoURL: ("http://my-gitea-http.gitea.svc.cluster.local:3000/" + $repo_owner + "/" + $repo_name + ".git"),
+                          targetRevision: "{{head_sha}}",
+                          path: "manifests"
+                        },
+                        destination: {
+                          server: "https://kubernetes.default.svc",
+                          namespace: ("sandbox-" + $repo_name + "-pr-{{number}}")
+                        },
+                        syncPolicy: {
+                          automated: {selfHeal: true, prune: true},
+                          syncOptions: ["CreateNamespace=true"]
+                        }
+                      }
+                    }
+                  }
+                }')
+              echo "$APPSET_JSON" > /tmp/appset.json
+              echo "ApplicationSet JSON:"
+              cat /tmp/appset.json
+
+          - name: Apply ApplicationSet via ArgoCD API
+            run: |
+              APPSET_NAME="sandbox-${REPO_NAME}"
+
+              # Try create; if 409 Conflict (already exists), update instead
+              HTTP_STATUS=$(curl -sk -o /tmp/argocd-response.json -w "%{http_code}" \
+                -X POST \
+                -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
+                -H "Content-Type: application/json" \
+                "${ARGOCD_SERVER}/api/v1/applicationsets" \
+                -d @/tmp/appset.json)
+
+              if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+                echo "ApplicationSet '${APPSET_NAME}' created successfully."
+              elif [ "$HTTP_STATUS" = "409" ]; then
+                echo "ApplicationSet already exists, updating..."
+                curl -sk -o /tmp/argocd-response.json -w "%{http_code}" \
+                  -X PUT \
+                  -H "Authorization: Bearer ${ARGOCD_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  "${ARGOCD_SERVER}/api/v1/applicationsets/${APPSET_NAME}" \
+                  -d @/tmp/appset.json
+                echo "ApplicationSet updated."
+              else
+                echo "ERROR: Unexpected response ${HTTP_STATUS}"
+                cat /tmp/argocd-response.json
+                exit 1
+              fi

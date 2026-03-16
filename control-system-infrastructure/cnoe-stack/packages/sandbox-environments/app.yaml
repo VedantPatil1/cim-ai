@@ -1,0 +1,36 @@
+# ArgoCD Application — Sandbox Environments Controller
+#
+# Manages the ArgoCD infrastructure needed to run ephemeral sandbox environments:
+#   - ArgoCD AppProject "sandbox" — scopes sandbox apps to sandbox-* namespaces only
+#   - ArgoCD local user "sandbox-agent" — used by the sandbox-lifecycle workflow
+#     to call the ArgoCD API (create/update/delete ApplicationSets)
+#   - Bootstrap Job — configures the ArgoCD RBAC ConfigMaps (argocd-cm, argocd-rbac-cm)
+#
+# After this package syncs, two manual bootstrap steps are required:
+#   1. Generate the ArgoCD sandbox-agent API token (see sandbox-environments/README.md)
+#   2. Generate the Gitea token for the PR generator (see sandbox-environments/README.md)
+#
+# Deployed as part of the control system bootstrap:
+#   idpbuilder create ... -p ./control-system-infrastructure/cnoe-stack/packages/sandbox-environments
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sandbox-environments
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: cnoe://manifests
+    targetRevision: HEAD
+    path: "."
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

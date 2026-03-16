@@ -1,0 +1,66 @@
+# ArgoCD AppProject: sandbox
+#
+# Constrains all sandbox Applications to:
+#   - Source: any repo (sandbox apps can come from any gitops repo)
+#   - Destination: only namespaces matching sandbox-* (strict isolation)
+#   - Resources: standard K8s workload types only (no CRDs, no cluster-scoped resources
+#     except Namespace creation — needed for CreateNamespace=true sync option)
+#
+# This means a compromised sandbox application cannot escape its namespace
+# or deploy cluster-level resources (ClusterRoles, PersistentVolumes, etc.).
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: sandbox
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: sandbox-environments
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"   # must exist before ApplicationSets reference it
+spec:
+  description: "Ephemeral sandbox environments for AI agent testing and PR validation"
+
+  # Allow any source repo — sandbox apps are generated per-repo
+  sourceRepos:
+    - "*"
+
+  # Restrict all deployments to sandbox-* namespaces only
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "sandbox-*"
+
+  # Allow Namespace creation (needed for CreateNamespace=true sync option)
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # Allow standard workload types within sandbox namespaces
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: "apps"
+      kind: StatefulSet
+    - group: "apps"
+      kind: ReplicaSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: "networking.k8s.io"
+      kind: Ingress
+    - group: "batch"
+      kind: Job
+    - group: "batch"
+      kind: CronJob
+
+  # Orphan deletion: clean up sandbox namespaces when AppProject is removed
+  orphanedResources:
+    warn: false

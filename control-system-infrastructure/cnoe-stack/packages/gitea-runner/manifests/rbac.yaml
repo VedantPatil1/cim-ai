@@ -1,0 +1,81 @@
+# RBAC for the in-cluster Gitea runner.
+#
+# Three permission grants:
+#   1. Role in gitea namespace — allows reading the gitea-credential Secret
+#      (used by the register-runner init container to auto-register)
+#   2. RoleBinding in gitea namespace — binds gitea-runner SA (cross-namespace)
+#   3. ClusterRole + ClusterRoleBinding — allows the runner SA to manage
+#      ArgoCD ApplicationSets (needed for sandbox-lifecycle workflow step that
+#      creates per-PR sandbox environments via the ArgoCD API)
+#
+# Note: The runner's workflow containers run inside Docker (dind) and do NOT
+# inherit the SA token automatically. Sandbox management is done via the
+# ArgoCD REST API using ARGOCD_SANDBOX_TOKEN (a Gitea org secret), not kubectl.
+# The ClusterRole here is reserved for future direct-kubectl use cases.
+
+---
+# 1. Role in gitea namespace — read gitea-credential Secret
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitea-runner-reads-credential
+  namespace: gitea
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: gitea-runner
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["gitea-credential"]
+    verbs: ["get"]
+
+---
+# 2. RoleBinding in gitea namespace — cross-namespace: SA is in gitea-runner
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitea-runner-reads-gitea-credential
+  namespace: gitea
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: gitea-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gitea-runner-reads-credential
+subjects:
+  - kind: ServiceAccount
+    name: gitea-runner
+    namespace: gitea-runner
+
+---
+# 3. ClusterRole — manage ArgoCD ApplicationSets (sandbox environments)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitea-runner-sandbox-manager
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: gitea-runner
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applicationsets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+---
+# 4. ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitea-runner-sandbox-manager
+  labels:
+    app.kubernetes.io/managed-by: argocd
+    cim.ai/component: gitea-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gitea-runner-sandbox-manager
+subjects:
+  - kind: ServiceAccount
+    name: gitea-runner
+    namespace: gitea-runner

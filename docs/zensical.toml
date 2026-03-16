@@ -18,10 +18,28 @@ nav = [
     { "idpbuilder & CNOE" = "platform-engineering/01-idpbuilder-and-cnoe.md" },
     { "CD Workflow Design" = "platform-engineering/02-cd-workflow-design.md" },
     { "Manual Setup (Gitea Actions)" = "platform-engineering/03-manual-setup-gitea-actions.md" },
+    { "Secret Scanning" = "platform-engineering/04-secret-scanning.md" },
+    { "Sandbox Environments" = "platform-engineering/05-sandbox-environments.md" },
   ]},
   { Security = [
     { "Requirements & Enforcement" = "security/index.md" },
     { "Implementation Guide" = "security/implementation.md" },
+  ]},
+  { "Baseline Prod Infrastructure" = [
+    { "Overview" = "baseline-prod-infrastructure/index.md" },
+    { "Architecture" = "baseline-prod-infrastructure/architecture.md" },
+    { "Tooling & IAM" = "baseline-prod-infrastructure/tooling.md" },
+    { "Deployment Procedure" = [
+      { "Prerequisites & Session Management" = "baseline-prod-infrastructure/procedure/index.md" },
+      { "1. Account Bootstrap" = "baseline-prod-infrastructure/procedure/01-account.md" },
+      { "2. State Backend" = "baseline-prod-infrastructure/procedure/02-state.md" },
+      { "3. Container Registry" = "baseline-prod-infrastructure/procedure/03-registry.md" },
+      { "4. Networking" = "baseline-prod-infrastructure/procedure/04-networking.md" },
+      { "5. Compute" = "baseline-prod-infrastructure/procedure/05-compute.md" },
+      { "6. ALB Controller" = "baseline-prod-infrastructure/procedure/06-ingress.md" },
+      { "7. Application" = "baseline-prod-infrastructure/procedure/07-application.md" },
+    ]},
+    { "Repositories" = "baseline-prod-infrastructure/repositories.md" },
   ]},
 ]
 
