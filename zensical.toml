@@ -2,7 +2,7 @@
 site_name        = "CIM-AI"
 site_description = "Agentic AI-based Cloud Infrastructure Management"
 site_author      = "Vedant Patil"
-docs_dir         = "content"
+docs_dir         = "docs"
 site_dir         = "site"
 
 nav = [
