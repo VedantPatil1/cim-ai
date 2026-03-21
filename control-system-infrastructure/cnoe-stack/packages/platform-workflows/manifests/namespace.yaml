@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: platform-workflows
-  labels:
-    app.kubernetes.io/managed-by: argocd
-    cim.ai/component: platform-workflows
