@@ -33,7 +33,8 @@ graph LR
     BT -->|"creates"| DDB
     S3 -->|"stores state for"| Modules
     DDB -->|"locks state for"| Modules
-``` The bootstrap module is the only one that runs with local state. All other modules use the S3 backend created here.
+```
+The bootstrap module is the only one that runs with local state. All other modules use the S3 backend created here.
 
 The local state file (`bootstrap/terraform.tfstate`) tracks exactly two resources and never changes after the initial apply. Keep it on disk. If it is lost, both resources can be reimported:
 
