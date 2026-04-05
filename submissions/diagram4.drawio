@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6">
+  <diagram name="Page-1" id="3KE8EVr0ai-4RUbxGCkU">
+    <mxGraphModel dx="1390" dy="987" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-56" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Terraform Modules" vertex="1">
+          <mxGeometry height="348" width="1322" x="20" y="1234" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-57" parent="EQPBCjbdVoTz4g4MMwlk-56" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="ecr&#xa;&#xa;ecr/terraform.tfstate" vertex="1">
+          <mxGeometry height="102" width="216" x="1053" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-58" parent="EQPBCjbdVoTz4g4MMwlk-56" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="vpc&#xa;&#xa;vpc/terraform.tfstate" vertex="1">
+          <mxGeometry height="102" width="217" x="46" y="207" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-59" parent="EQPBCjbdVoTz4g4MMwlk-56" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="eks&#xa;&#xa;eks/terraform.tfstate" vertex="1">
+          <mxGeometry height="102" width="216" x="538" y="207" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-60" parent="EQPBCjbdVoTz4g4MMwlk-56" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="alb-controller&#xa;&#xa;alb-controller/terraform.tfstate" vertex="1">
+          <mxGeometry height="126" width="264" x="1029" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-61" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-56" source="EQPBCjbdVoTz4g4MMwlk-58" style="curved=1;startArrow=none;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-59" value="reads vpc_id, subnet_ids via remote state">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-62" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-56" source="EQPBCjbdVoTz4g4MMwlk-59" style="curved=1;startArrow=none;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-60" value="reads cluster endpoint, OIDC provider">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-63" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="bootstrap&#xa;&#xa;(never run again - local state only)" vertex="1">
+          <mxGeometry height="126" width="260" x="551" y="930" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-64" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="S3 bucket" vertex="1">
+          <mxGeometry height="54" width="130" x="514" y="1106" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-65" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="DynamoDB table" vertex="1">
+          <mxGeometry height="54" width="178" x="694" y="1106" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-66" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-63" style="curved=1;startArrow=none;endArrow=block;exitX=0.22;exitY=1;entryX=0.5;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-64" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="579" y="1081" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-67" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-63" style="curved=1;startArrow=none;endArrow=block;exitX=0.78;exitY=1;entryX=0.5;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-65" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="783" y="1081" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-68" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-64" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=none;exitX=0.5;exitY=1;entryX=0.44;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-56" value="reads from">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="579" y="1197" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-69" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-65" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=none;exitX=0.5;exitY=1;entryX=0.56;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-56" value="reads from">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="783" y="1197" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

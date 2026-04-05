@@ -1,0 +1,46 @@
+# Gitea configuration override for idpbuilder.
+#
+# idpbuilder's -c flag REPLACES the entire resource — this file must include
+# the full base config from the baked manifest, with only the one change:
+#   actions: ENABLED=false → ENABLED=true
+#
+# Immutable after cluster creation. To change: rebuild the cluster.
+#   kind delete cluster --name localdev && idpbuilder create ...
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-gitea-inline-config
+  namespace: gitea
+type: Opaque
+stringData:
+  _generals_: ""
+  actions: ENABLED=true
+  cache: |-
+    ADAPTER=memory
+    HOST=
+  database: DB_TYPE=sqlite3
+  indexer: ISSUE_INDEXER_TYPE=db
+  metrics: ENABLED=false
+  queue: |-
+    CONN_STR=
+    TYPE=level
+  repository: ROOT=/data/git/gitea-repositories
+  security: INSTALL_LOCK=true
+  server: |-
+    APP_DATA_PATH=/data
+    DOMAIN=cnoe.localtest.me
+    ENABLE_PPROF=false
+    HTTP_PORT=3000
+    PROTOCOL=http
+    ROOT_URL=https://cnoe.localtest.me:8443/gitea
+    SSH_DOMAIN=cnoe.localtest.me
+    SSH_LISTEN_PORT=2222
+    SSH_PORT=32222
+    START_SSH_SERVER=true
+  session: |-
+    PROVIDER=memory
+    PROVIDER_CONFIG=
+  webhook: |-
+    ALLOWED_HOST_LIST=private
+    SKIP_TLS_VERIFY=true

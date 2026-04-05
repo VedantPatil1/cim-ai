@@ -99,7 +99,9 @@ graph TD
     STS -->|"temp credentials"| ROLE
     ROLE --> POLICY
     POLICY -->|"grants access to AWS"| AWS["EC2 · EKS · ECR · ELB<br/>S3 · DynamoDB · IAM · OIDC<br/>(all scoped to sample-api-*)"]
-``` Permissions live in a role that is assumed temporarily. This means static access keys — if compromised — cannot do anything without an additional STS call.
+```
+
+Permissions live in a role that is assumed temporarily. This means static access keys — if compromised — cannot do anything without an additional STS call.
 
 ### Account Structure
 

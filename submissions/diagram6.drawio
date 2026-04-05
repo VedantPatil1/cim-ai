@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6">
+  <diagram name="Page-1" id="3KE8EVr0ai-4RUbxGCkU">
+    <mxGraphModel dx="1390" dy="987" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-84" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=#f4f4f4;strokeColor=#666;fontColor=light-dark(#333333,#cccccc);" value="release.yml - main branch only" vertex="1">
+          <mxGeometry height="750" width="330" x="390" y="930" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-85" parent="EQPBCjbdVoTz4g4MMwlk-84" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="OIDC - assume sample-api-github-ecr-role" vertex="1">
+          <mxGeometry height="78" width="260" x="43" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-86" parent="EQPBCjbdVoTz4g4MMwlk-84" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="docker build --platform linux/amd64" vertex="1">
+          <mxGeometry height="78" width="260" x="43" y="199" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-87" parent="EQPBCjbdVoTz4g4MMwlk-84" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="docker push to ECR git SHA + latest tags" vertex="1">
+          <mxGeometry height="78" width="260" x="43" y="352" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-88" parent="EQPBCjbdVoTz4g4MMwlk-84" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="update staging overlay in deploy repo commit" vertex="1">
+          <mxGeometry height="78" width="260" x="43" y="505" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-89" parent="EQPBCjbdVoTz4g4MMwlk-84" style="shape=mxgraph.arrows2.arrow;dy=0;dx=0;notch=20;strokeWidth=2;whiteSpace=wrap;spacingLeft=10;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="no static credentials - OIDC only" vertex="1">
+          <mxGeometry height="63" width="231" x="58" y="658" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-90" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-84" source="EQPBCjbdVoTz4g4MMwlk-85" style="curved=1;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-86" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-91" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-84" source="EQPBCjbdVoTz4g4MMwlk-86" style="curved=1;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-87" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-92" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-84" source="EQPBCjbdVoTz4g4MMwlk-87" style="curved=1;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-88" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-93" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-84" source="EQPBCjbdVoTz4g4MMwlk-88" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-89" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-94" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=#f9f9f9;strokeColor=#333;fontColor=light-dark(#333333,#cccccc);" value="checks.yml - develop branch" vertex="1">
+          <mxGeometry height="573" width="320" x="20" y="1019" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-95" parent="EQPBCjbdVoTz4g4MMwlk-94" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Trivy secret scan" vertex="1">
+          <mxGeometry height="54" width="180" x="78" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-96" parent="EQPBCjbdVoTz4g4MMwlk-94" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Ruff lint + format check" vertex="1">
+          <mxGeometry height="54" width="232" x="52" y="199" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-97" parent="EQPBCjbdVoTz4g4MMwlk-94" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Pytest + coverage min 80%" vertex="1">
+          <mxGeometry height="54" width="250" x="43" y="352" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-98" parent="EQPBCjbdVoTz4g4MMwlk-94" style="shape=mxgraph.arrows2.arrow;dy=0;dx=0;notch=20;strokeWidth=2;whiteSpace=wrap;spacingLeft=10;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="no AWS credentials required" vertex="1">
+          <mxGeometry height="63" width="231" x="53" y="481" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-99" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-94" source="EQPBCjbdVoTz4g4MMwlk-95" style="curved=1;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-96" value="blocks if fails">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-100" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-94" source="EQPBCjbdVoTz4g4MMwlk-96" style="curved=1;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-97" value="blocks if fails">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-101" edge="1" parent="EQPBCjbdVoTz4g4MMwlk-94" source="EQPBCjbdVoTz4g4MMwlk-97" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=block;exitX=0.5;exitY=0.99;entryX=0.5;entryY=-0.01;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-98" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-102" parent="1" style="shape=mxgraph.arrows2.arrow;dy=0;dx=0;notch=20;strokeWidth=2;whiteSpace=wrap;spacingLeft=10;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="checks.yml runs on develop; release.yml runs on main - these never overlap" vertex="1">
+          <mxGeometry height="111" width="243" x="246" y="1730" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-103" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-94" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=none;exitX=0.5;exitY=1;entryX=0;entryY=0.03;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-102" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="1705" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-104" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-84" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=none;exitX=0.5;exitY=1;entryX=1;entryY=0.03;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-102" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="1705" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

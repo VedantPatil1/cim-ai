@@ -1,0 +1,27 @@
+---
+# Allow the runner SA to read the gitea-credential Secret (cross-namespace).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitea-runner-reads-credential
+  namespace: gitea
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["gitea-credential"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitea-runner-reads-gitea-credential
+  namespace: gitea
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gitea-runner-reads-credential
+subjects:
+  - kind: ServiceAccount
+    name: gitea-runner
+    namespace: gitea-runner

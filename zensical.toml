@@ -7,6 +7,10 @@ site_dir         = "site"
 
 nav = [
   { Home = "index.md" },
+  { Dissertation = [
+    { Abstract = "dissertation/abstract.md" },
+    { Security = "dissertation/security.md" },
+  ]},
   { Methodology = "methodology.md" },
   { "Knowledge Graph" = "knowledge-graph.md" },
   { Installation = [

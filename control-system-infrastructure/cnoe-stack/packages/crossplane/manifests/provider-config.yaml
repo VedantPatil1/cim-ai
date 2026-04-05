@@ -1,0 +1,29 @@
+# ProviderConfig — wires the AWS provider to credentials.
+#
+# Prerequisites (run manually before applying this):
+#   kubectl create secret generic aws-creds \
+#     -n crossplane-system \
+#     --from-file=credentials=$HOME/.aws/credentials
+#
+# The credentials file must contain a [default] profile or the profile
+# referenced below. Using the sample-api-terraform profile:
+#
+#   [default]
+#   aws_access_key_id     = ...
+#   aws_secret_access_key = ...
+#
+# Or point at the role-based profile from the project:
+#   AWS_PROFILE=sample-api-terraform (assumed role)
+#   — in this case, use static keys for the base cli user in the secret.
+
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-creds
+      key: credentials

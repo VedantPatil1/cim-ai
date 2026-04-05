@@ -1,0 +1,19 @@
+# Upbound AWS provider family — installs CRDs for all AWS services.
+# Apply this AFTER Crossplane is healthy (the Provider controller needs to be running first).
+#
+# After applying, create a ProviderConfig with your AWS credentials:
+#   kubectl create secret generic aws-creds \
+#     -n crossplane-system \
+#     --from-file=credentials=$HOME/.aws/credentials
+#
+# Then apply the ProviderConfig in provider-config.yaml.
+
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: upbound-provider-family-aws
+spec:
+  package: xpkg.upbound.io/upbound/provider-family-aws:v1.14.1
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1

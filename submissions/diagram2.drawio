@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6">
+  <diagram name="Page-1" id="3KE8EVr0ai-4RUbxGCkU">
+    <mxGraphModel dx="1390" dy="987" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-20" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Band 4: Active production environment" vertex="1">
+          <mxGeometry height="436" width="252" x="59" y="1494" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-21" parent="EQPBCjbdVoTz4g4MMwlk-20" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="EKS Fargate" vertex="1">
+          <mxGeometry height="54" width="145" x="61" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-22" parent="EQPBCjbdVoTz4g4MMwlk-20" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="VPC + ALB" vertex="1">
+          <mxGeometry height="54" width="132" x="68" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-23" parent="EQPBCjbdVoTz4g4MMwlk-20" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Secrets Manager" vertex="1">
+          <mxGeometry height="54" width="177" x="46" y="251" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-24" parent="EQPBCjbdVoTz4g4MMwlk-20" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="CloudWatch" vertex="1">
+          <mxGeometry height="54" width="145" x="62" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-25" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Band 3: Control system infrastructure" vertex="1">
+          <mxGeometry height="540" width="239" x="65" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-26" parent="EQPBCjbdVoTz4g4MMwlk-25" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Github" vertex="1">
+          <mxGeometry height="54" width="108" x="74" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-27" parent="EQPBCjbdVoTz4g4MMwlk-25" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="ECR" vertex="1">
+          <mxGeometry height="54" width="87" x="84" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-28" parent="EQPBCjbdVoTz4g4MMwlk-25" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="ArgoCD" vertex="1">
+          <mxGeometry height="54" width="112" x="72" y="251" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-29" parent="EQPBCjbdVoTz4g4MMwlk-25" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Github Actions" vertex="1">
+          <mxGeometry height="54" width="164" x="46" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-30" parent="EQPBCjbdVoTz4g4MMwlk-25" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Terraform" vertex="1">
+          <mxGeometry height="54" width="131" x="62" y="459" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-31" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Band 2: Tooling layer - security perimeter" vertex="1">
+          <mxGeometry height="332" width="329" x="20" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-32" parent="EQPBCjbdVoTz4g4MMwlk-31" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="MCP Server" vertex="1">
+          <mxGeometry height="54" width="140" x="103" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-33" parent="EQPBCjbdVoTz4g4MMwlk-31" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Tool Library" vertex="1">
+          <mxGeometry height="54" width="144" x="100" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-34" parent="EQPBCjbdVoTz4g4MMwlk-31" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Guardrail + Response Filter" vertex="1">
+          <mxGeometry height="54" width="254" x="46" y="251" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-35" parent="1" style="whiteSpace=wrap;strokeWidth=2;verticalAlign=top;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Band 1: LLMs and external agentic systems" vertex="1">
+          <mxGeometry height="332" width="267" x="51" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-36" parent="EQPBCjbdVoTz4g4MMwlk-35" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="LLM Frontend" vertex="1">
+          <mxGeometry height="54" width="157" x="63" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-37" parent="EQPBCjbdVoTz4g4MMwlk-35" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Agentic Workflows" vertex="1">
+          <mxGeometry height="54" width="192" x="46" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-38" parent="EQPBCjbdVoTz4g4MMwlk-35" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="User Identity" vertex="1">
+          <mxGeometry height="54" width="153" x="65" y="251" as="geometry" />
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-39" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-35" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=none;exitX=0.5;exitY=1;entryX=0.5;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-31" value="Boundary 1 - auth . token scoping . response filter">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-40" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-31" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=none;exitX=0.5;exitY=1;entryX=0.5;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-25" value="Boundary 2 - PoLP . RBAC . CloudTrail">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EQPBCjbdVoTz4g4MMwlk-41" edge="1" parent="1" source="EQPBCjbdVoTz4g4MMwlk-25" style="curved=1;dashed=1;dashPattern=2 3;startArrow=none;endArrow=block;exitX=0.5;exitY=1;entryX=0.5;entryY=0;rounded=0;" target="EQPBCjbdVoTz4g4MMwlk-20" value="via GitOps only">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
