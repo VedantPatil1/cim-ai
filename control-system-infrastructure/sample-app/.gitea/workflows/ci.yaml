@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: cnoe.localtest.me:8443
+  IMAGE: cnoe.localtest.me:8443/giteaadmin/sample-backend-app
+
+jobs:
+  # ------------------------------------------------------------------
+  # Gate: tests must pass before any image is built or pushed
+  # ------------------------------------------------------------------
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pip
+        run: apt-get update -q && apt-get install -y -q python3-pip
+
+      - name: Install dependencies
+        run: pip3 install -r requirements.txt httpx pytest
+
+      - name: Run tests
+        run: python3 -m pytest tests/ -v
+
+  # ------------------------------------------------------------------
+  # Build image and push to Gitea container registry (main only)
+  # ------------------------------------------------------------------
+  build-push:
+    runs-on: ubuntu-latest
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      # Job containers run inside dind. dind's bridge gateway (172.17.0.1) is
+      # reachable from inside any job container and has the Docker daemon on :2375.
+      - name: Set up Docker
+        run: |
+          apt-get update -q
+          apt-get install -y -q docker.io iproute2
+          DIND_HOST=$(ip route show default | awk '/default/{print $3}')
+          echo "DOCKER_HOST=tcp://${DIND_HOST}:2375" >> $GITHUB_ENV
+
+      - name: Verify Docker + configure registry
+        run: |
+          docker info --format '{{.ServerVersion}}'
+          echo "10.96.122.41 cnoe.localtest.me" >> /etc/hosts
+
+      - name: Build image
+        run: |
+          docker build \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            -t ${{ env.IMAGE }}:latest \
+            .
+
+      - name: Login to Gitea registry
+        run: |
+          echo "${{ secrets.CI_TOKEN }}" | \
+            docker login ${{ env.REGISTRY }} -u giteaAdmin --password-stdin
+
+      - name: Push image
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      # ------------------------------------------------------------------
+      # Update the image tag in the GitOps repo → triggers ArgoCD sync
+      # ------------------------------------------------------------------
+      - name: Update gitops repo
+        run: |
+          git config --global user.email "ci@cnoe.local"
+          git config --global user.name "CI Bot"
+          git config --global http.sslVerify false
+
+          git clone \
+            http://giteaAdmin:${{ secrets.CI_TOKEN }}@my-gitea-http.gitea.svc.cluster.local:3000/giteaAdmin/sample-backend-gitops.git \
+            gitops
+
+          cd gitops
+          sed -i \
+            "s|image: ${{ env.IMAGE }}:.*|image: ${{ env.IMAGE }}:${{ github.sha }}|" \
+            deployment.yaml
+
+          git add deployment.yaml
+          git diff --cached --quiet || \
+            git commit -m "ci: deploy ${{ github.sha }}" && git push

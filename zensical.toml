@@ -7,6 +7,7 @@ site_dir         = "site"
 
 nav = [
   { Home = "index.md" },
+  { "Progress" = "progress.md" },
   { Dissertation = [
     { Abstract = "dissertation/abstract.md" },
     { Security = "dissertation/security.md" },
@@ -28,6 +29,7 @@ nav = [
   { Security = [
     { "Requirements & Enforcement" = "security/index.md" },
     { "Implementation Guide" = "security/implementation.md" },
+    { "GitOps Security Model" = "security/gitops-security.md" },
   ]},
   { "Baseline Prod Infrastructure" = [
     { "Overview" = "baseline-prod-infrastructure/index.md" },

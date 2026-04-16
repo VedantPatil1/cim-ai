@@ -1,48 +1,48 @@
+# Abstract
+
 ## The Problem
 
-Modern cloud-native platforms use IaC and GitOps to automate deployments reliably — but they cannot semantically reason about why a system is failing or whether a configuration aligns with business objectives. This leaves complex auditing and troubleshooting as manual, high-latency tasks.
+Modern cloud-native platforms use Infrastructure as Code and GitOps to automate deployments reliably — but they cannot semantically reason about *why* a system is failing or whether a configuration aligns with business objectives. This leaves complex auditing and troubleshooting as manual, high-latency tasks.
 
-LLM-based Multi-Agentic Systems are increasingly used to bridge this gap — but they introduce a new risk. As demonstrated by the July 2025 Replit incident, where an agentic assistant bypassed explicit "no-change" directives and deleted a production database, fully autonomous AI lacks the deterministic reliability required for infrastructure management. Without rigorous guardrails, LLM reasoning becomes a liability rather than an asset.
+LLM-based agentic systems are increasingly used to bridge this gap — but they introduce a new risk class. In July 2025, an agentic coding assistant operating on a Replit user's behalf bypassed explicit *"no-change"* directives and deleted a production database. The safety constraint existed only as a natural language instruction. The agent reasoned past it.
+
+Fully autonomous AI lacks the deterministic reliability required for infrastructure management. Without rigorous guardrails, LLM reasoning becomes a liability rather than an asset.
 
 ---
 
 ## The Proposed Solution
 
-A controlled, auditable, and secure tooling-based agentic workflow system for standardised Control Plane Infrastructure — sitting between risky fully autonomous AI and tedious manual operations.
+A **controlled, auditable, and secure tooling-based agentic workflow system** for standardised Control Plane Infrastructure — sitting between risky fully autonomous AI and tedious manual operations.
+
+The system is built on a GitOps substrate where every agent action must be expressed as a Git commit. The Git history is the audit trail. An agent that cannot commit cannot act — and an agent that commits leaves an irrevocable, causally linked record of exactly what it did and why.
 
 ---
 
 ## Objectives
 
-- Identify operational challenges in modern cloud-native platform engineering
-- Implement reliable guardrails using security-by-design: A2A authentication, tool-based actions, human-in-the-loop authorisation, and Principle of Least Privilege
-- Design agentic workflows operating as part of a standardised platform control plane
-- Leverage LLM reasoning across infrastructure state, GitOps repos, IaC definitions, CI/CD pipelines, and operational documentation
-- Implement controlled automation that prioritises stability, reliability, and traceability over full autonomy
-- Compare proposed agentic workflows against generalised systems using metrics: Task Success Rate (TSR), Mean Time to Resolution (MTTR), and System Efficiency & Cost
+1. Identify operational challenges in cloud-native platform engineering that are viable targets for agentic AI assistance
+2. Implement a secure control plane substrate that enforces hard mechanical constraints on agent behaviour — not instructed constraints
+3. Define and implement a security model (R1–R6) covering agent identity, least privilege, HITL gates, audit trail, secret protection, and supply chain integrity
+4. Design agentic workflows that operate within these constraints, leveraging LLM reasoning for contextual tasks while delegating enforcement to the tooling layer
+5. Build a structured operational knowledge layer (knowledge graph) to give agents precise, queryable context rather than raw documentation
+6. Evaluate the constrained system against a manual baseline and unrestricted AI using Task Success Rate, Mean Time to Resolution, and system efficiency metrics
 
 ---
 
-## Scope
+## Key Architectural Decisions
 
-Design and develop secure, constrained, and specialised agentic workflows for Standardised Platform Control Planes. Implement a set of standards, rules, and practices for safe workflow execution. Evaluate against generalised Agentic AI using industry-standard metrics. Refine for context awareness and token efficiency aligned with real-world use cases.
+**GitOps as the enforcement layer** — agents cannot call cloud APIs directly. All mutations flow through pull requests, which ArgoCD applies only after human review. The deployment mechanism *is* the audit mechanism.
 
----
+**Two-boundary trust model** — Boundary 1 sits between the LLM and the tooling layer (authentication, token scoping, response sanitisation). Boundary 2 sits between the tooling layer and infrastructure (least privilege credentials, blast radius assessment, operation whitelisting). Both boundaries must be simultaneously compromised for a breach to have effect.
 
-## Timeline
+**Tool scoping over prompt scoping** — each agent identity receives only the MCP tools required for its specific function. A state reader cannot write. A staging promoter cannot touch production. Constraints are enforced at the credential and RBAC level, not in the system prompt.
 
-| Phase | Period |
-|---|---|
-| Literature Review + Outline | Jan 31 – Feb 7, 2026 |
-| Design & Development | Feb 7 – Mar 7, 2026 |
-| Testing & User Evaluation | Mar 7 – Mar 15, 2026 |
-| Packaging & Metric Evaluation | Mar 15 – Apr 15, 2026 |
-| Documentation | Apr 15 – Apr 25, 2026 |
-| Supervisor Review | Apr 25 – May 12, 2026 |
-| Final Submission | Mar 26 – Mar 30, 2026 |
+**Extraction-on-commit knowledge graph** — operational knowledge (runbooks, service dependencies, environment topology) is extracted from source files on every relevant commit and stored as a versioned graph. Agents query typed graph endpoints rather than reading raw markdown — precision replaces retrieval.
 
 ---
 
-## Why This Matters
+## Mid-Semester Status
 
-The infrastructure being built in this project — EKS, ArgoCD, GitOps pipelines, OIDC-based access, Terraform IaC — is not just a deployment platform. It is the experimental environment in which constrained agentic workflows operate. Every design decision — PoLP IAM, scoped tokens, auditable git commits, human promotion gates — directly maps to a security principle being researched and validated.
+The control system infrastructure (Layer 1) is fully implemented and validated locally. The end-to-end GitOps pipeline — push to Gitea → CI builds and pushes image → ArgoCD reconciles → kind cluster updated — is live. The AWS production environment (EKS, ECR, VPC, ALB) is manually provisioned and operational. The security model is fully specified. Remaining work: Terraform IaC, Kyverno policy enforcement, the agentic layer, and evaluation.
+
+See the [Progress Tracker](progress.md) for the full breakdown.
