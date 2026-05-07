@@ -46,6 +46,11 @@ spec:
             # Keycloak is served at /keycloak via nginx path routing.
             - name: KC_HTTP_RELATIVE_PATH
               value: "/keycloak"
+            # External URL — tells Keycloak what port to use in OIDC discovery.
+            # Without this, nginx strips the port from X-Forwarded-Host and
+            # Keycloak advertises https://cnoe.localtest.me (port 443) instead of :8443.
+            - name: KC_HOSTNAME
+              value: "https://cnoe.localtest.me:8443/keycloak"
 
             # ── Proxy / TLS ───────────────────────────────────────────────
             - name: KC_PROXY_HEADERS
