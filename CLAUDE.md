@@ -19,11 +19,46 @@ make clean         # remove docs/site/
 ### Control Plane Bootstrap
 
 ```bash
-# Bootstrap the local control plane (kind cluster + Gitea + ArgoCD)
+# Full bootstrap: kind cluster + Gitea + ArgoCD + Keycloak + Langflow + Gitea Actions Runner
 idpbuilder create \
+  --recreate \
   --use-path-routing \
-  -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml
+  -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml \
+  -p control-system-infrastructure/cnoe-stack/packages/gitea-runner \
+  -p control-system-infrastructure/cnoe-stack/packages/keycloak \
+  -p control-system-infrastructure/cnoe-stack/packages/langflow
 ```
+
+```bash
+# After bootstrap: set the Anthropic API key for Langflow
+kubectl create secret generic langflow-api-keys \
+  -n langflow \
+  --from-literal=ANTHROPIC_API_KEY=sk-ant-... \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+**IMPORTANT after each cluster rebuild:**
+1. The nginx ingress ClusterIP changes. Update `hostAliases` in `manifests/deployment.yaml` and `manifests/oauth2-proxy.yaml` with the new IP:
+   ```bash
+   kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.clusterIP}'
+   ```
+   Push the change to Gitea: `cd /tmp/langflow-manifests && git add . && git commit ... && git push`
+
+2. If the langflow ArgoCD sync fails (oauth2-proxy blocks PostSync), run the Keycloak client job manually:
+   ```bash
+   kubectl apply -f control-system-infrastructure/cnoe-stack/packages/langflow/manifests/keycloak-client-job.yaml
+   ```
+
+3. Get the new Gitea token after rebuild:
+   ```bash
+   kubectl get secret -n gitea gitea-credential -o jsonpath='{.data.token}' | base64 -d
+   ```
+
+URLs after bootstrap:
+- ArgoCD:   https://cnoe.localtest.me:8443/argocd
+- Gitea:    https://cnoe.localtest.me:8443/gitea
+- Keycloak: https://cnoe.localtest.me:8443/keycloak  (admin: admin / auto-generated password)
+- Langflow: https://cnoe.localtest.me:8443/langflow   (login via Keycloak cnoe realm, user: platform / platform)
 
 ## Architecture
 
@@ -64,13 +99,13 @@ All design decisions follow: **Security > Reliability > Capability**
 - **Reliability** is the operational constraint (Task Success Rate, MTTR).
 - **Capability** (supported use cases) is only expanded once existing cases are secure and reliable.
 
-### Agentic System (future phase — deferred until GitOps is stable)
+### Agentic System (Phase 1 implemented)
 
-- **MCP servers** — one per concern, scoped to principle of least privilege
-- **LangGraph** — production workflow implementation (code-first, lives in Git)
-- **Langflow** — prototyping only; workflows are re-implemented in LangGraph before evaluation
-- **LLM backend** — Anthropic Claude API
-- **Knowledge graph** — extracted from docs/manifests/IaC on every relevant commit via Gitea Actions; agents query it via a read-only MCP server rather than reading raw markdown
+- **Langflow** — in-cluster at `/langflow`, protected by Keycloak SSO via oauth2-proxy
+- **MCP server** — `knowledge-graph/mcp_server.py`, port 8765, 4 query tools over graph.json
+- **Knowledge graph** — `knowledge-graph/graph.json`, extracted via `extract.py` (Claude API), auto-updated by Gitea Actions on doc/manifest changes
+- **LLM backend** — Anthropic Claude API (`claude-haiku-4-5`), key in K8s Secret `langflow-api-keys`
+- **Metrics** — `metrics/calculate.py` computes TSR / MTTR from `metrics/events.json`
 
 ### Documentation Structure
 
