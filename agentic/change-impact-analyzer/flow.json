@@ -1,0 +1,332 @@
+{
+  "name": "Change Impact Analyzer",
+  "description": "Given a proposed infrastructure change, determines blast radius: which services, environments, and policies are affected. Uses the knowledge graph to trace dependencies.",
+  "is_component": false,
+  "data": {
+    "nodes": [
+      {
+        "id": "TextInput-change",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 160 },
+        "data": {
+          "id": "TextInput-change",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": true,
+                "placeholder": "e.g. Modify the gitea-actions-runner deployment to add a new env var DOCKER_TLS_VERIFY=0",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Proposed Change",
+                "advanced": false,
+                "value": "",
+                "info": "Describe the change you want to make to the infrastructure"
+              }
+            },
+            "description": "Description of the proposed change",
+            "display_name": "Proposed Change",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextInput-target",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 360 },
+        "data": {
+          "id": "TextInput-target",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "placeholder": "e.g. comp:gitea-actions-runner, svc:sample-backend-api",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Target Component / Service",
+                "advanced": false,
+                "value": "",
+                "info": "The node ID being changed (helps scope the blast radius analysis)"
+              }
+            },
+            "description": "Node ID of the target being changed",
+            "display_name": "Target Node",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextInput-graph-path",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 560 },
+        "data": {
+          "id": "TextInput-graph-path",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "placeholder": "/path/to/knowledge-graph/graph.json",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Graph JSON Path",
+                "advanced": false,
+                "value": "knowledge-graph/graph.json"
+              }
+            },
+            "description": "Path to graph.json",
+            "display_name": "Graph Path",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "CustomComponent-impact",
+        "type": "genericNode",
+        "position": { "x": 500, "y": 430 },
+        "data": {
+          "id": "CustomComponent-impact",
+          "type": "CustomComponent",
+          "node": {
+            "template": {
+              "_type": "CustomComponent",
+              "code": {
+                "field_type": "code",
+                "required": true,
+                "show": true,
+                "name": "code",
+                "display_name": "Code",
+                "advanced": false,
+                "value": "import json\nfrom pathlib import Path\nfrom langflow.custom import CustomComponent\n\nclass ImpactExtractorComponent(CustomComponent):\n    display_name = \"Impact Extractor\"\n    description = \"Extracts the subgraph relevant to a target node for blast radius analysis\"\n\n    def build_config(self):\n        return {\n            \"graph_path\": {\"display_name\": \"Graph JSON Path\", \"field_type\": \"str\", \"required\": False, \"value\": \"knowledge-graph/graph.json\"},\n            \"target_node\": {\"display_name\": \"Target Node ID\", \"field_type\": \"str\", \"required\": False, \"value\": \"\"},\n        }\n\n    def build(self, graph_path: str = \"knowledge-graph/graph.json\", target_node: str = \"\") -> str:\n        path = Path(graph_path)\n        if not path.is_absolute():\n            path = Path.cwd() / graph_path\n        if not path.exists():\n            return f\"ERROR: graph.json not found at {path}\"\n\n        graph = json.loads(path.read_text())\n        nodes_by_id = {n[\"id\"]: n for n in graph[\"nodes\"]}\n        edges = graph[\"edges\"]\n\n        if not target_node:\n            # Return full graph summary\n            lines = [f\"# Full Graph Context ({len(graph['nodes'])} nodes, {len(graph['edges'])} edges)\"]\n            lines.append(\"\\n## All Nodes\")\n            for n in graph[\"nodes\"]:\n                lines.append(f\"- [{n['type']}] {n['id']}\")\n            lines.append(\"\\n## All Edges\")\n            for e in edges:\n                lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n            return \"\\n\".join(lines)\n\n        # BFS: find all nodes reachable from target (both directions)\n        visited = set()\n        queue = [target_node]\n        relevant_edges = []\n        while queue:\n            node_id = queue.pop(0)\n            if node_id in visited:\n                continue\n            visited.add(node_id)\n            for e in edges:\n                if e[\"from\"] == node_id and e[\"to\"] not in visited:\n                    relevant_edges.append(e)\n                    queue.append(e[\"to\"])\n                if e[\"to\"] == node_id and e[\"from\"] not in visited:\n                    relevant_edges.append(e)\n                    queue.append(e[\"from\"])\n\n        lines = [f\"# Impact Subgraph for: {target_node}\"]\n        lines.append(f\"Reachable nodes: {len(visited)}\")\n        lines.append(\"\\n## Connected Nodes\")\n        for nid in visited:\n            n = nodes_by_id.get(nid, {\"type\": \"Unknown\", \"attrs\": {}})\n            lines.append(f\"- [{n.get('type', '?')}] {nid}\")\n        lines.append(\"\\n## Relevant Relationships\")\n        seen_edges = set()\n        for e in relevant_edges:\n            key = f\"{e['from']}-{e['rel']}-{e['to']}\"\n            if key not in seen_edges:\n                seen_edges.add(key)\n                lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n        return \"\\n\".join(lines)\n"
+              }
+            },
+            "description": "Extracts subgraph for blast radius computation",
+            "display_name": "Impact Extractor",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "Prompt-impact",
+        "type": "genericNode",
+        "position": { "x": 900, "y": 240 },
+        "data": {
+          "id": "Prompt-impact",
+          "type": "Prompt",
+          "node": {
+            "template": {
+              "_type": "Prompt",
+              "template": {
+                "field_type": "prompt",
+                "required": true,
+                "show": true,
+                "name": "template",
+                "display_name": "Template",
+                "advanced": false,
+                "value": "You are a platform engineering advisor. Analyse the blast radius of a proposed infrastructure change.\n\n## Knowledge Graph Context\n{graph_context}\n\n## Proposed Change\n{proposed_change}\n\nTarget component: {target_node}\n\n---\n\nProvide a structured impact analysis:\n\n## Directly Affected\nList nodes immediately impacted by this change.\n\n## Transitively Affected\nList nodes impacted via dependency chains (DEPENDS_ON, DEPLOYS_TO, etc.).\n\n## Policy Checks\nIdentify any policies (GOVERNED_BY edges) that apply and may need review.\n\n## Risk Assessment\nOverall risk level: CRITICAL / HIGH / MEDIUM / LOW\nBrief justification.\n\n## Recommended Actions\nSpecific steps to safely implement this change (PRs, approvals, runbooks).\n\nBe concise and specific. Reference node IDs from the graph."
+              },
+              "graph_context": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "graph_context",
+                "display_name": "graph_context",
+                "advanced": false,
+                "value": ""
+              },
+              "proposed_change": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "proposed_change",
+                "display_name": "proposed_change",
+                "advanced": false,
+                "value": ""
+              },
+              "target_node": {
+                "field_type": "str",
+                "required": false,
+                "show": true,
+                "name": "target_node",
+                "display_name": "target_node",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Impact analysis prompt",
+            "display_name": "Impact Prompt",
+            "documentation": "",
+            "base_classes": ["Prompt"]
+          }
+        }
+      },
+      {
+        "id": "ChatAnthropic-impact",
+        "type": "genericNode",
+        "position": { "x": 1280, "y": 240 },
+        "data": {
+          "id": "ChatAnthropic-impact",
+          "type": "ChatAnthropic",
+          "node": {
+            "template": {
+              "_type": "ChatAnthropic",
+              "anthropic_api_key": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "anthropic_api_key",
+                "display_name": "Anthropic API Key",
+                "advanced": false,
+                "value": "",
+                "password": true
+              },
+              "model_name": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "model_name",
+                "display_name": "Model Name",
+                "advanced": false,
+                "value": "claude-haiku-4-5-20251001"
+              },
+              "temperature": {
+                "field_type": "float",
+                "required": false,
+                "show": true,
+                "name": "temperature",
+                "display_name": "Temperature",
+                "advanced": true,
+                "value": 0.1
+              }
+            },
+            "description": "Claude AI for impact analysis",
+            "display_name": "Claude AI",
+            "documentation": "",
+            "base_classes": ["LanguageModel", "Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextOutput-impact",
+        "type": "genericNode",
+        "position": { "x": 1620, "y": 240 },
+        "data": {
+          "id": "TextOutput-impact",
+          "type": "TextOutput",
+          "node": {
+            "template": {
+              "_type": "TextOutput",
+              "input_value": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Impact Analysis",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Blast radius and impact analysis result",
+            "display_name": "Impact Analysis Output",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "graph-path-to-impact",
+        "source": "TextInput-graph-path",
+        "target": "CustomComponent-impact",
+        "sourceHandle": "TextInput-graph-path-output-Message",
+        "targetHandle": "CustomComponent-impact-input-graph_path",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-graph-path", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "graph_path", "id": "CustomComponent-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "target-to-impact",
+        "source": "TextInput-target",
+        "target": "CustomComponent-impact",
+        "sourceHandle": "TextInput-target-output-Message",
+        "targetHandle": "CustomComponent-impact-input-target_node",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-target", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "target_node", "id": "CustomComponent-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "impact-to-prompt",
+        "source": "CustomComponent-impact",
+        "target": "Prompt-impact",
+        "sourceHandle": "CustomComponent-impact-output-Message",
+        "targetHandle": "Prompt-impact-input-graph_context",
+        "data": {
+          "sourceHandle": { "dataType": "CustomComponent", "id": "CustomComponent-impact", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "graph_context", "id": "Prompt-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "change-to-prompt",
+        "source": "TextInput-change",
+        "target": "Prompt-impact",
+        "sourceHandle": "TextInput-change-output-Message",
+        "targetHandle": "Prompt-impact-input-proposed_change",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-change", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "proposed_change", "id": "Prompt-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "target-to-prompt",
+        "source": "TextInput-target",
+        "target": "Prompt-impact",
+        "sourceHandle": "TextInput-target-output-Message",
+        "targetHandle": "Prompt-impact-input-target_node",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-target", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "target_node", "id": "Prompt-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "prompt-to-llm",
+        "source": "Prompt-impact",
+        "target": "ChatAnthropic-impact",
+        "sourceHandle": "Prompt-impact-output-Prompt",
+        "targetHandle": "ChatAnthropic-impact-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "Prompt", "id": "Prompt-impact", "name": "prompt", "output_types": ["Prompt"] },
+          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-impact", "inputTypes": ["Prompt"], "type": "str" }
+        }
+      },
+      {
+        "id": "llm-to-output",
+        "source": "ChatAnthropic-impact",
+        "target": "TextOutput-impact",
+        "sourceHandle": "ChatAnthropic-impact-output-Message",
+        "targetHandle": "TextOutput-impact-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "ChatAnthropic", "id": "ChatAnthropic-impact", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "input_value", "id": "TextOutput-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 0.65 }
+  }
+}

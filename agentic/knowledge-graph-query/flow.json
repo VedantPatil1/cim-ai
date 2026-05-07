@@ -1,0 +1,273 @@
+{
+  "name": "Knowledge Graph Query",
+  "description": "Query the infrastructure knowledge graph. Ask natural-language questions about services, environments, policies, and runbooks. The graph is loaded from knowledge-graph/graph.json.",
+  "is_component": false,
+  "data": {
+    "nodes": [
+      {
+        "id": "TextInput-question",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 200 },
+        "data": {
+          "id": "TextInput-question",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": true,
+                "placeholder": "e.g. Who owns the sample-backend-api? What policies govern the staging environment?",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Question",
+                "advanced": false,
+                "value": "",
+                "info": "Natural language question about the infrastructure"
+              }
+            },
+            "description": "Your question about the infrastructure",
+            "display_name": "Question Input",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextInput-graph-path",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 420 },
+        "data": {
+          "id": "TextInput-graph-path",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "placeholder": "/path/to/knowledge-graph/graph.json",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Graph JSON Path",
+                "advanced": false,
+                "value": "knowledge-graph/graph.json",
+                "info": "Path to graph.json relative to repo root, or absolute path"
+              }
+            },
+            "description": "Path to the knowledge graph JSON file",
+            "display_name": "Graph Path",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "CustomComponent-loader",
+        "type": "genericNode",
+        "position": { "x": 480, "y": 420 },
+        "data": {
+          "id": "CustomComponent-loader",
+          "type": "CustomComponent",
+          "node": {
+            "template": {
+              "_type": "CustomComponent",
+              "code": {
+                "field_type": "code",
+                "required": true,
+                "show": true,
+                "name": "code",
+                "display_name": "Code",
+                "advanced": false,
+                "value": "import json\nfrom pathlib import Path\nfrom langflow.custom import CustomComponent\nfrom langflow.schema import Record\n\nclass GraphLoaderComponent(CustomComponent):\n    display_name = \"Graph Loader\"\n    description = \"Loads knowledge-graph/graph.json and returns it as formatted text\"\n\n    def build_config(self):\n        return {\n            \"graph_path\": {\n                \"display_name\": \"Graph JSON Path\",\n                \"field_type\": \"str\",\n                \"required\": False,\n                \"value\": \"knowledge-graph/graph.json\",\n            }\n        }\n\n    def build(self, graph_path: str = \"knowledge-graph/graph.json\") -> str:\n        path = Path(graph_path)\n        if not path.is_absolute():\n            # Try relative to CWD\n            path = Path.cwd() / graph_path\n        if not path.exists():\n            return f\"ERROR: graph.json not found at {path}\"\n\n        graph = json.loads(path.read_text())\n        lines = []\n        lines.append(f\"# Knowledge Graph ({len(graph['nodes'])} nodes, {len(graph['edges'])} edges)\")\n        lines.append(\"\")\n        lines.append(\"## Nodes\")\n        for n in graph[\"nodes\"]:\n            attrs = \", \".join(f\"{k}={v}\" for k, v in n[\"attrs\"].items() if k != \"name\")\n            name = n[\"attrs\"].get(\"name\", n[\"id\"])\n            lines.append(f\"- [{n['type']}] {n['id']} — {name}\" + (f\" ({attrs})\" if attrs else \"\"))\n        lines.append(\"\")\n        lines.append(\"## Relationships\")\n        for e in graph[\"edges\"]:\n            lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n        return \"\\n\".join(lines)\n"
+              }
+            },
+            "description": "Loads and formats graph.json as text for LLM context",
+            "display_name": "Graph Loader",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "Prompt-kg-query",
+        "type": "genericNode",
+        "position": { "x": 860, "y": 280 },
+        "data": {
+          "id": "Prompt-kg-query",
+          "type": "Prompt",
+          "node": {
+            "template": {
+              "_type": "Prompt",
+              "template": {
+                "field_type": "prompt",
+                "required": true,
+                "show": true,
+                "name": "template",
+                "display_name": "Template",
+                "advanced": false,
+                "value": "You are an infrastructure knowledge assistant. You have access to a structured knowledge graph of the system's services, components, repositories, environments, and policies.\n\nAnswer the user's question using ONLY the information in the knowledge graph below. If the answer is not in the graph, say so clearly.\n\n{graph_context}\n\n---\n\nUser question: {question}\n\nProvide a direct, factual answer. Cite specific node IDs and relationships from the graph where relevant."
+              },
+              "graph_context": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "graph_context",
+                "display_name": "graph_context",
+                "advanced": false,
+                "value": ""
+              },
+              "question": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "question",
+                "display_name": "question",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "KG query prompt — injects graph context + user question",
+            "display_name": "KG Query Prompt",
+            "documentation": "",
+            "base_classes": ["Prompt"]
+          }
+        }
+      },
+      {
+        "id": "ChatAnthropic-kg",
+        "type": "genericNode",
+        "position": { "x": 1200, "y": 280 },
+        "data": {
+          "id": "ChatAnthropic-kg",
+          "type": "ChatAnthropic",
+          "node": {
+            "template": {
+              "_type": "ChatAnthropic",
+              "anthropic_api_key": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "anthropic_api_key",
+                "display_name": "Anthropic API Key",
+                "advanced": false,
+                "value": "",
+                "password": true
+              },
+              "model_name": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "model_name",
+                "display_name": "Model Name",
+                "advanced": false,
+                "value": "claude-haiku-4-5-20251001",
+                "options": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]
+              },
+              "temperature": {
+                "field_type": "float",
+                "required": false,
+                "show": true,
+                "name": "temperature",
+                "display_name": "Temperature",
+                "advanced": true,
+                "value": 0.0
+              }
+            },
+            "description": "Claude answers the KG query",
+            "display_name": "Claude AI",
+            "documentation": "",
+            "base_classes": ["LanguageModel", "Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextOutput-answer",
+        "type": "genericNode",
+        "position": { "x": 1540, "y": 280 },
+        "data": {
+          "id": "TextOutput-answer",
+          "type": "TextOutput",
+          "node": {
+            "template": {
+              "_type": "TextOutput",
+              "input_value": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Answer",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Answer to the infrastructure question",
+            "display_name": "Answer Output",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "graph-path-to-loader",
+        "source": "TextInput-graph-path",
+        "target": "CustomComponent-loader",
+        "sourceHandle": "TextInput-graph-path-output-Message",
+        "targetHandle": "CustomComponent-loader-input-graph_path",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-graph-path", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "graph_path", "id": "CustomComponent-loader", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "loader-to-prompt",
+        "source": "CustomComponent-loader",
+        "target": "Prompt-kg-query",
+        "sourceHandle": "CustomComponent-loader-output-Message",
+        "targetHandle": "Prompt-kg-query-input-graph_context",
+        "data": {
+          "sourceHandle": { "dataType": "CustomComponent", "id": "CustomComponent-loader", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "graph_context", "id": "Prompt-kg-query", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "question-to-prompt",
+        "source": "TextInput-question",
+        "target": "Prompt-kg-query",
+        "sourceHandle": "TextInput-question-output-Message",
+        "targetHandle": "Prompt-kg-query-input-question",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-question", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "question", "id": "Prompt-kg-query", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "prompt-to-llm",
+        "source": "Prompt-kg-query",
+        "target": "ChatAnthropic-kg",
+        "sourceHandle": "Prompt-kg-query-output-Prompt",
+        "targetHandle": "ChatAnthropic-kg-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "Prompt", "id": "Prompt-kg-query", "name": "prompt", "output_types": ["Prompt"] },
+          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-kg", "inputTypes": ["Prompt"], "type": "str" }
+        }
+      },
+      {
+        "id": "llm-to-output",
+        "source": "ChatAnthropic-kg",
+        "target": "TextOutput-answer",
+        "sourceHandle": "ChatAnthropic-kg-output-Message",
+        "targetHandle": "TextOutput-answer-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "ChatAnthropic", "id": "ChatAnthropic-kg", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "input_value", "id": "TextOutput-answer", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 0.75 }
+  }
+}

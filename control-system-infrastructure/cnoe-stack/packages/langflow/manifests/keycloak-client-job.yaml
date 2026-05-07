@@ -1,0 +1,157 @@
+# ---------------------------------------------------------------------------
+# Keycloak Client Registration Job
+#
+# Runs once at deployment time. Creates the 'langflow' OIDC client in the
+# Keycloak 'cnoe' realm and populates the langflow-oauth2-proxy Secret with:
+#   - OAUTH2_PROXY_CLIENT_SECRET  (Keycloak client secret)
+#   - OAUTH2_PROXY_COOKIE_SECRET  (random 32-byte base64 for cookie signing)
+#
+# Idempotent: if the client already exists, it updates the secret in place.
+#
+# Keycloak assumptions (idpbuilder defaults):
+#   - Namespace:      keycloak
+#   - Service:        keycloak.keycloak.svc.cluster.local:80
+#   - Admin user:     admin
+#   - Admin password: in Secret 'keycloak' at key 'adminPassword'
+#   - Realm:          cnoe
+#
+# If your idpbuilder setup differs, adjust KEYCLOAK_URL, KEYCLOAK_REALM,
+# and the secret/key references below.
+# ---------------------------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: langflow-keycloak-client-setup
+  namespace: langflow
+  annotations:
+    # Re-run the job when the manifest changes by bumping this value.
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      serviceAccountName: langflow-keycloak-job
+      restartPolicy: OnFailure
+      initContainers:
+        # Wait until Keycloak is reachable before proceeding.
+        - name: wait-for-keycloak
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Waiting for Keycloak..."
+              until curl -sf --max-time 5 \
+                http://keycloak.keycloak.svc.cluster.local:80/keycloak/realms/cnoe/.well-known/openid-configuration \
+                > /dev/null; do
+                echo "  not ready, retrying in 5s..."
+                sleep 5
+              done
+              echo "Keycloak is ready."
+      containers:
+        - name: register-client
+          image: bitnami/kubectl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+
+              KEYCLOAK_URL="http://keycloak.keycloak.svc.cluster.local:80/keycloak"
+              KEYCLOAK_REALM="cnoe"
+              CLIENT_ID="langflow"
+              REDIRECT_URI="https://cnoe.localtest.me:8443/oauth2/callback"
+
+              # ── 1. Read Keycloak admin password from its secret ─────────────
+              # Bitnami chart stores admin password in secret 'keycloak', key 'admin-password'
+              ADMIN_PASS=$(kubectl get secret keycloak -n keycloak \
+                -o jsonpath='{.data.admin-password}' | base64 -d)
+
+              # ── 2. Get admin access token ────────────────────────────────────
+              echo "Getting Keycloak admin token..."
+              TOKEN=$(curl -sf \
+                -d "client_id=admin-cli" \
+                -d "username=admin" \
+                -d "password=${ADMIN_PASS}" \
+                -d "grant_type=password" \
+                "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+                | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+
+              if [ -z "$TOKEN" ]; then
+                echo "ERROR: failed to get Keycloak admin token."
+                exit 1
+              fi
+              echo "Got admin token."
+
+              # ── 3. Check if the client already exists ────────────────────────
+              EXISTING=$(curl -sf \
+                -H "Authorization: Bearer ${TOKEN}" \
+                "${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/clients?clientId=${CLIENT_ID}" \
+                | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+              if [ -n "$EXISTING" ]; then
+                echo "Client '${CLIENT_ID}' already exists (id=${EXISTING}). Fetching secret..."
+                CLIENT_SECRET=$(curl -sf \
+                  -H "Authorization: Bearer ${TOKEN}" \
+                  "${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/clients/${EXISTING}/client-secret" \
+                  | grep -o '"value":"[^"]*"' | cut -d'"' -f4)
+              else
+                # ── 4. Create the OIDC client ──────────────────────────────────
+                echo "Creating OIDC client '${CLIENT_ID}'..."
+                HTTP_STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+                  -X POST \
+                  -H "Authorization: Bearer ${TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  "${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/clients" \
+                  -d "{
+                    \"clientId\": \"${CLIENT_ID}\",
+                    \"name\": \"Langflow\",
+                    \"description\": \"Langflow agentic workflow UI\",
+                    \"enabled\": true,
+                    \"publicClient\": false,
+                    \"standardFlowEnabled\": true,
+                    \"directAccessGrantsEnabled\": false,
+                    \"serviceAccountsEnabled\": false,
+                    \"redirectUris\": [\"${REDIRECT_URI}\"],
+                    \"webOrigins\": [\"+\"],
+                    \"attributes\": {\"pkce.code.challenge.method\": \"S256\"}
+                  }")
+                echo "Create status: ${HTTP_STATUS}"
+
+                # Fetch the new client's ID and secret
+                EXISTING=$(curl -sf \
+                  -H "Authorization: Bearer ${TOKEN}" \
+                  "${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/clients?clientId=${CLIENT_ID}" \
+                  | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+                CLIENT_SECRET=$(curl -sf \
+                  -H "Authorization: Bearer ${TOKEN}" \
+                  "${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/clients/${EXISTING}/client-secret" \
+                  | grep -o '"value":"[^"]*"' | cut -d'"' -f4)
+
+                echo "Client created."
+              fi
+
+              if [ -z "$CLIENT_SECRET" ]; then
+                echo "ERROR: could not retrieve client secret."
+                exit 1
+              fi
+
+              # ── 5. Generate a secure cookie secret (32 random bytes, base64) ─
+              COOKIE_SECRET=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | base64 | tr -d '\n')
+
+              # ── 6. Patch the langflow-oauth2-proxy Secret ────────────────────
+              echo "Updating langflow-oauth2-proxy secret..."
+              kubectl patch secret langflow-oauth2-proxy -n langflow \
+                --type='json' \
+                -p="[
+                  {\"op\":\"replace\",\"path\":\"/data/OAUTH2_PROXY_CLIENT_SECRET\",\"value\":\"$(echo -n "$CLIENT_SECRET" | base64)\"},
+                  {\"op\":\"replace\",\"path\":\"/data/OAUTH2_PROXY_COOKIE_SECRET\",\"value\":\"$(echo -n "$COOKIE_SECRET" | base64)\"}
+                ]"
+
+              echo "Done. Keycloak client '${CLIENT_ID}' registered and secrets populated."
+
+              # ── 7. Restart oauth2-proxy so it picks up the new secrets ──────────
+              echo "Restarting oauth2-proxy..."
+              kubectl rollout restart deployment/oauth2-proxy -n langflow
+              kubectl rollout status deployment/oauth2-proxy -n langflow --timeout=120s
+              echo "oauth2-proxy is ready."

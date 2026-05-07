@@ -1,0 +1,30 @@
+---
+# Langflow — internal ClusterIP (only reached via oauth2-proxy or ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: langflow
+  namespace: langflow
+spec:
+  selector:
+    app: langflow
+  ports:
+    - name: http
+      port: 7860
+      targetPort: 7860
+  type: ClusterIP
+---
+# oauth2-proxy — receives traffic from nginx ingress auth annotations
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: langflow
+spec:
+  selector:
+    app: oauth2-proxy
+  ports:
+    - name: http
+      port: 4180
+      targetPort: 4180
+  type: ClusterIP

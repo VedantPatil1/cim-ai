@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: keycloak
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    # Keycloak needs the original Host header for URL construction
+    nginx.ingress.kubernetes.io/proxy-set-header: "Host $host"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cnoe.localtest.me
+      http:
+        paths:
+          - path: /keycloak
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  name: http

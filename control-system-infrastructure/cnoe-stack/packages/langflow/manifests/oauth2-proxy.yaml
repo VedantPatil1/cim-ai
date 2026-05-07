@@ -1,0 +1,113 @@
+# ---------------------------------------------------------------------------
+# oauth2-proxy — authentication gateway for Langflow
+#
+# Sits between nginx ingress and Langflow. Every request to /langflow is
+# first sent to oauth2-proxy for Keycloak token validation.
+# If the user is unauthenticated, they are redirected to Keycloak login.
+#
+# OIDC details:
+#   Provider:     Keycloak (cnoe realm, via idpbuilder)
+#   Issuer URL:   https://cnoe.localtest.me:8443/keycloak/realms/cnoe
+#   Client ID:    langflow   (created by keycloak-client-job)
+#   Client Secret: in Secret langflow-oauth2-proxy
+#   Callback:     https://cnoe.localtest.me:8443/oauth2/callback
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: langflow
+  labels:
+    app: oauth2-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+          args:
+            # ── Provider ──────────────────────────────────────────────────
+            - --provider=oidc
+            # Keycloak behind nginx reports issuer without port (cnoe.localtest.me not :8443).
+            # Skip strict issuer verification for local dev.
+            - --oidc-issuer-url=https://cnoe.localtest.me:8443/keycloak/realms/cnoe
+            - --insecure-oidc-skip-issuer-verification=true
+            - --client-id=langflow
+            - --skip-oidc-discovery=false
+
+            # ── Callback and upstream ─────────────────────────────────────
+            # Callback is at /oauth2/callback (separate ingress path).
+            # Upstream is Langflow's ClusterIP service.
+            - --redirect-url=https://cnoe.localtest.me:8443/oauth2/callback
+            - --upstream=http://langflow.langflow.svc.cluster.local:7860
+
+            # ── Network ───────────────────────────────────────────────────
+            - --http-address=0.0.0.0:4180
+            - --real-client-ip-header=X-Real-IP
+
+            # ── Cookie ────────────────────────────────────────────────────
+            - --cookie-name=_oauth2_proxy_langflow
+            - --cookie-secure=true
+            - --cookie-expire=8h
+            - --cookie-refresh=1h
+
+            # ── Access control ────────────────────────────────────────────
+            # Allow any email domain — Keycloak controls who can log in.
+            - --email-domain=*
+
+            # ── TLS ───────────────────────────────────────────────────────
+            # idpbuilder uses a self-signed cert; skip TLS verification for
+            # internal Keycloak calls.
+            - --ssl-insecure-skip-verify=true
+            - --insecure-oidc-allow-unverified-email=true
+
+            # ── UX ────────────────────────────────────────────────────────
+            # Skip the "sign in with provider" button; go straight to Keycloak.
+            - --skip-provider-button=true
+
+            # ── PKCE ─────────────────────────────────────────────────────
+            - --code-challenge-method=S256
+
+          env:
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: langflow-oauth2-proxy
+                  key: OAUTH2_PROXY_CLIENT_SECRET
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: langflow-oauth2-proxy
+                  key: OAUTH2_PROXY_COOKIE_SECRET
+
+          ports:
+            - containerPort: 4180
+              name: http
+
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 4180
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      # Same hostAliases as Langflow — needed for OIDC discovery call to Keycloak.
+      hostAliases:
+        - ip: "10.96.232.4"
+          hostnames:
+            - "cnoe.localtest.me"

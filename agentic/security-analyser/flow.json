@@ -1,0 +1,249 @@
+{
+  "name": "GitOps Security Analyser",
+  "description": "Analyzes a code diff for security implications in a GitOps repository. Supports both Foundation-Sec-8B (via Ollama) and Claude (via Anthropic API).",
+  "is_component": false,
+  "data": {
+    "nodes": [
+      {
+        "id": "TextInput-diff",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 160 },
+        "data": {
+          "id": "TextInput-diff",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": true,
+                "placeholder": "Paste the git diff here",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Code Diff",
+                "advanced": false,
+                "value": "",
+                "info": "Raw output of git diff for the PR"
+              }
+            },
+            "description": "Receives the raw git diff to analyse",
+            "display_name": "Code Diff Input",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextInput-context",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 400 },
+        "data": {
+          "id": "TextInput-context",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "placeholder": "PR title, description, author",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "PR Context",
+                "advanced": false,
+                "value": "",
+                "info": "PR metadata for additional context"
+              }
+            },
+            "description": "PR title and description for additional context",
+            "display_name": "PR Context Input",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "Prompt-security",
+        "type": "genericNode",
+        "position": { "x": 480, "y": 270 },
+        "data": {
+          "id": "Prompt-security",
+          "type": "Prompt",
+          "node": {
+            "template": {
+              "_type": "Prompt",
+              "template": {
+                "field_type": "prompt",
+                "required": true,
+                "show": true,
+                "name": "template",
+                "display_name": "Template",
+                "advanced": false,
+                "value": "You are a security analyst reviewing a code change in a GitOps repository. Analyse the following diff for security implications.\n\nPR Context:\n{context}\n\nCode Diff:\n{diff}\n\nProvide a structured security analysis with the following sections:\n\n## Risk Level\nState one of: CRITICAL / HIGH / MEDIUM / LOW / INFORMATIONAL\n\n## Summary\nOne sentence describing what changed and its primary security implication.\n\n## Findings\nList specific security concerns found in the diff. For each finding:\n- **Finding**: what was observed\n- **Risk**: why it matters\n- **Recommendation**: what should be done\n\nIf no security concerns are found, state \"No security issues identified.\"\n\n## GitOps Impact\nNote any changes that affect CI/CD pipelines, workflow files, secrets handling, IAM, or deployment configuration — these carry elevated risk in a GitOps system.\n\nBe concise. Do not repeat the diff. Focus only on security-relevant observations."
+              },
+              "diff": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "diff",
+                "display_name": "diff",
+                "advanced": false,
+                "value": ""
+              },
+              "context": {
+                "field_type": "str",
+                "required": false,
+                "show": true,
+                "name": "context",
+                "display_name": "context",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Security analysis prompt template",
+            "display_name": "Security Analysis Prompt",
+            "documentation": "",
+            "base_classes": ["Prompt"]
+          }
+        }
+      },
+      {
+        "id": "ChatAnthropic-security",
+        "type": "genericNode",
+        "position": { "x": 880, "y": 270 },
+        "data": {
+          "id": "ChatAnthropic-security",
+          "type": "ChatAnthropic",
+          "node": {
+            "template": {
+              "_type": "ChatAnthropic",
+              "anthropic_api_key": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "anthropic_api_key",
+                "display_name": "Anthropic API Key",
+                "advanced": false,
+                "value": "",
+                "password": true,
+                "info": "Set ANTHROPIC_API_KEY in environment or enter here"
+              },
+              "model_name": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "model_name",
+                "display_name": "Model Name",
+                "advanced": false,
+                "value": "claude-haiku-4-5-20251001",
+                "options": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-sonnet-4-6",
+                  "claude-opus-4-6"
+                ]
+              },
+              "temperature": {
+                "field_type": "float",
+                "required": false,
+                "show": true,
+                "name": "temperature",
+                "display_name": "Temperature",
+                "advanced": true,
+                "value": 0.1
+              },
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "show": false,
+                "name": "input_value",
+                "display_name": "Input",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Claude AI for security analysis (replace with OllamaModel for local-only setup)",
+            "display_name": "Claude AI",
+            "documentation": "",
+            "base_classes": ["LanguageModel", "Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "TextOutput-result",
+        "type": "genericNode",
+        "position": { "x": 1260, "y": 270 },
+        "data": {
+          "id": "TextOutput-result",
+          "type": "TextOutput",
+          "node": {
+            "template": {
+              "_type": "TextOutput",
+              "input_value": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Security Analysis",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Security analysis result",
+            "display_name": "Analysis Output",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "diff-to-prompt",
+        "source": "TextInput-diff",
+        "target": "Prompt-security",
+        "sourceHandle": "TextInput-diff-output-Message",
+        "targetHandle": "Prompt-security-input-diff",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-diff", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "diff", "id": "Prompt-security", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "context-to-prompt",
+        "source": "TextInput-context",
+        "target": "Prompt-security",
+        "sourceHandle": "TextInput-context-output-Message",
+        "targetHandle": "Prompt-security-input-context",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-context", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "context", "id": "Prompt-security", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "prompt-to-llm",
+        "source": "Prompt-security",
+        "target": "ChatAnthropic-security",
+        "sourceHandle": "Prompt-security-output-Prompt",
+        "targetHandle": "ChatAnthropic-security-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "Prompt", "id": "Prompt-security", "name": "prompt", "output_types": ["Prompt"] },
+          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-security", "inputTypes": ["Prompt"], "type": "str" }
+        }
+      },
+      {
+        "id": "llm-to-output",
+        "source": "ChatAnthropic-security",
+        "target": "TextOutput-result",
+        "sourceHandle": "ChatAnthropic-security-output-Message",
+        "targetHandle": "TextOutput-result-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "ChatAnthropic", "id": "ChatAnthropic-security", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "input_value", "id": "TextOutput-result", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 0.8 }
+  }
+}

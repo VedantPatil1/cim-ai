@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "team:platform-eng",
+      "type": "Team",
+      "attrs": { "name": "platform-eng" }
+    },
+    {
+      "id": "svc:sample-backend-api",
+      "type": "Service",
+      "attrs": {
+        "name": "sample-backend-api",
+        "language": "python",
+        "framework": "fastapi",
+        "repo": "repo:sample-backend-app",
+        "owner": "team:platform-eng"
+      }
+    },
+    {
+      "id": "repo:sample-backend-app",
+      "type": "Repository",
+      "attrs": {
+        "name": "sample-backend-app",
+        "type": "app",
+        "url": "http://cnoe.localtest.me:8443/giteaAdmin/sample-backend-app",
+        "default_branch": "main"
+      }
+    },
+    {
+      "id": "repo:sample-backend-gitops",
+      "type": "Repository",
+      "attrs": {
+        "name": "sample-backend-gitops",
+        "type": "gitops",
+        "url": "http://cnoe.localtest.me:8443/giteaAdmin/sample-backend-gitops",
+        "default_branch": "main"
+      }
+    },
+    {
+      "id": "repo:cim-ai",
+      "type": "Repository",
+      "attrs": {
+        "name": "cim-ai",
+        "type": "infra",
+        "url": "https://github.com/vedantpatil/cim-ai",
+        "default_branch": "main"
+      }
+    },
+    {
+      "id": "env:local-kind",
+      "type": "Environment",
+      "attrs": {
+        "name": "local-kind",
+        "tier": "local",
+        "platform": "kind",
+        "ingress": "cnoe.localtest.me"
+      }
+    },
+    {
+      "id": "env:staging",
+      "type": "Environment",
+      "attrs": {
+        "name": "staging",
+        "tier": "local",
+        "namespace": "sample-staging",
+        "cluster": "env:local-kind"
+      }
+    },
+    {
+      "id": "comp:gitea",
+      "type": "Component",
+      "attrs": {
+        "name": "gitea",
+        "type": "registry",
+        "subtype": "git-server",
+        "url": "http://cnoe.localtest.me:8443",
+        "namespace": "gitea"
+      }
+    },
+    {
+      "id": "comp:argocd",
+      "type": "Component",
+      "attrs": {
+        "name": "argocd",
+        "type": "controller",
+        "subtype": "gitops-operator",
+        "url": "http://cnoe.localtest.me:8443/argocd",
+        "namespace": "argocd"
+      }
+    },
+    {
+      "id": "comp:gitea-actions-runner",
+      "type": "Component",
+      "attrs": {
+        "name": "gitea-actions-runner",
+        "type": "ci-runner",
+        "namespace": "gitea",
+        "managed_by": "repo:idpbuilder-runner-manifests",
+        "argocd_app": "gitea-runner"
+      }
+    },
+    {
+      "id": "comp:gitea-oci-registry",
+      "type": "Component",
+      "attrs": {
+        "name": "gitea-oci-registry",
+        "type": "registry",
+        "subtype": "container-registry",
+        "url": "cnoe.localtest.me:8443"
+      }
+    },
+    {
+      "id": "comp:ollama",
+      "type": "Component",
+      "attrs": {
+        "name": "ollama",
+        "type": "llm-runtime",
+        "url": "http://localhost:11434",
+        "model": "FenkoHQ/Foundation-Sec-8B:latest"
+      }
+    },
+    {
+      "id": "comp:langflow",
+      "type": "Component",
+      "attrs": {
+        "name": "langflow",
+        "type": "agent-runtime",
+        "url": "http://localhost:7860",
+        "version": "1.5"
+      }
+    },
+    {
+      "id": "policy:branch-protection",
+      "type": "Policy",
+      "attrs": {
+        "name": "branch-protection",
+        "enforcer": "gitea",
+        "scope": "repo:sample-backend-app/main",
+        "rules": [
+          "enable_push: false",
+          "required_approvals: 1",
+          "approvals_whitelist: admin-human"
+        ]
+      }
+    },
+    {
+      "id": "policy:hitl-gate",
+      "type": "Policy",
+      "attrs": {
+        "name": "hitl-gate",
+        "enforcer": "gitea",
+        "scope": "repo:sample-backend-app/main",
+        "description": "Human-in-the-loop: admin-human must approve all PRs before merge"
+      }
+    },
+    {
+      "id": "policy:gitleaks-scan",
+      "type": "Policy",
+      "attrs": {
+        "name": "gitleaks-scan",
+        "enforcer": "gitea-actions",
+        "scope": "repo:sample-backend-app",
+        "trigger": "push",
+        "description": "Secret scanning via gitleaks on every push; must pass before merge"
+      }
+    },
+    {
+      "id": "policy:protected-workflows",
+      "type": "Policy",
+      "attrs": {
+        "name": "protected-workflows",
+        "enforcer": "gitea",
+        "scope": "repo:sample-backend-app",
+        "description": "protected_file_patterns blocks .gitea/workflows/* from modification via PR",
+        "security_control": "R6-supply-chain"
+      }
+    },
+    {
+      "id": "policy:security-analysis",
+      "type": "Policy",
+      "attrs": {
+        "name": "security-analysis",
+        "enforcer": "gitea-actions",
+        "scope": "repo:sample-backend-app",
+        "trigger": "pull_request",
+        "description": "AI security analysis on every PR diff using Foundation-Sec-8B; posts PR comment"
+      }
+    },
+    {
+      "id": "runbook:deploy-sample-backend",
+      "type": "Runbook",
+      "attrs": {
+        "name": "deploy-sample-backend",
+        "trigger": "push to main branch of sample-backend-app",
+        "steps_summary": [
+          "1. CI checks pass (pytest)",
+          "2. Docker image built and pushed to Gitea OCI registry",
+          "3. GitOps repo deployment.yaml updated with new image SHA",
+          "4. ArgoCD detects change and syncs to staging namespace"
+        ]
+      }
+    },
+    {
+      "id": "runbook:bootstrap-control-plane",
+      "type": "Runbook",
+      "attrs": {
+        "name": "bootstrap-control-plane",
+        "trigger": "manual / fresh environment setup",
+        "steps_summary": [
+          "1. idpbuilder create --use-path-routing -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml",
+          "2. Kind cluster + Gitea + ArgoCD provisioned",
+          "3. Gitea Actions runner deployed via ArgoCD (gitea-runner app)",
+          "4. Sample app and gitops repos created on Gitea"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    { "from": "team:platform-eng", "to": "svc:sample-backend-api", "rel": "OWNS" },
+    { "from": "team:platform-eng", "to": "repo:sample-backend-app", "rel": "OWNS" },
+    { "from": "team:platform-eng", "to": "repo:sample-backend-gitops", "rel": "OWNS" },
+    { "from": "team:platform-eng", "to": "repo:cim-ai", "rel": "OWNS" },
+
+    { "from": "svc:sample-backend-api", "to": "comp:gitea-oci-registry", "rel": "DEPENDS_ON" },
+
+    { "from": "repo:sample-backend-app", "to": "env:staging", "rel": "DEPLOYS_TO" },
+    { "from": "repo:sample-backend-gitops", "to": "env:staging", "rel": "DEPLOYS_TO" },
+
+    { "from": "repo:cim-ai", "to": "env:local-kind", "rel": "PROVISIONS" },
+    { "from": "repo:cim-ai", "to": "comp:gitea", "rel": "PROVISIONS" },
+    { "from": "repo:cim-ai", "to": "comp:argocd", "rel": "PROVISIONS" },
+    { "from": "repo:cim-ai", "to": "comp:gitea-actions-runner", "rel": "PROVISIONS" },
+
+    { "from": "svc:sample-backend-api", "to": "policy:branch-protection", "rel": "GOVERNED_BY" },
+    { "from": "svc:sample-backend-api", "to": "policy:hitl-gate", "rel": "GOVERNED_BY" },
+    { "from": "svc:sample-backend-api", "to": "policy:gitleaks-scan", "rel": "GOVERNED_BY" },
+    { "from": "svc:sample-backend-api", "to": "policy:protected-workflows", "rel": "GOVERNED_BY" },
+    { "from": "svc:sample-backend-api", "to": "policy:security-analysis", "rel": "GOVERNED_BY" },
+    { "from": "env:staging", "to": "policy:hitl-gate", "rel": "GOVERNED_BY" },
+
+    { "from": "svc:sample-backend-api", "to": "runbook:deploy-sample-backend", "rel": "DOCUMENTED_BY" },
+    { "from": "env:local-kind", "to": "runbook:bootstrap-control-plane", "rel": "DOCUMENTED_BY" },
+
+    { "from": "env:staging", "to": "env:local-kind", "rel": "DEPENDS_ON" },
+    { "from": "comp:gitea-actions-runner", "to": "comp:gitea", "rel": "DEPENDS_ON" },
+    { "from": "comp:argocd", "to": "comp:gitea", "rel": "DEPENDS_ON" }
+  ]
+}

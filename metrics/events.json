@@ -1,0 +1,92 @@
+{
+  "events": [
+    {
+      "task_id": "demo-001",
+      "task_type": "ci-pipeline",
+      "description": "CI pipeline: sample-backend-app push to main — tests + build + deploy",
+      "success": true,
+      "started_at": "2026-04-15T10:12:00+00:00",
+      "completed_at": "2026-04-15T10:15:34+00:00",
+      "duration_s": 214.0,
+      "error": null,
+      "metadata": { "sha": "abc1234", "app": "sample-backend-api" }
+    },
+    {
+      "task_id": "demo-002",
+      "task_type": "security-analysis",
+      "description": "Security analysis: PR #3 diff — 42 lines changed in main.py",
+      "success": true,
+      "started_at": "2026-04-15T11:00:00+00:00",
+      "completed_at": "2026-04-15T11:00:28+00:00",
+      "duration_s": 28.3,
+      "error": null,
+      "metadata": { "pr": 3, "risk_level": "LOW", "findings": 0 }
+    },
+    {
+      "task_id": "demo-003",
+      "task_type": "security-analysis",
+      "description": "Security analysis: PR #5 diff — hardcoded token detected in CI script",
+      "success": true,
+      "started_at": "2026-04-16T09:20:00+00:00",
+      "completed_at": "2026-04-16T09:20:31+00:00",
+      "duration_s": 31.1,
+      "error": null,
+      "metadata": { "pr": 5, "risk_level": "HIGH", "findings": 1 }
+    },
+    {
+      "task_id": "demo-004",
+      "task_type": "gitops-sync",
+      "description": "ArgoCD sync: sample-backend — image tag update to SHA a1b2c3d",
+      "success": true,
+      "started_at": "2026-04-15T10:16:00+00:00",
+      "completed_at": "2026-04-15T10:16:45+00:00",
+      "duration_s": 45.0,
+      "error": null,
+      "metadata": { "app": "sample-backend", "namespace": "sample-staging" }
+    },
+    {
+      "task_id": "demo-005",
+      "task_type": "kg-extraction",
+      "description": "Knowledge graph extraction: docs/methodology.md + docs/security/implementation.md",
+      "success": true,
+      "started_at": "2026-05-01T08:00:00+00:00",
+      "completed_at": "2026-05-01T08:01:12+00:00",
+      "duration_s": 72.4,
+      "error": null,
+      "metadata": { "files": 2, "nodes_added": 4, "edges_added": 6 }
+    },
+    {
+      "task_id": "demo-006",
+      "task_type": "ci-pipeline",
+      "description": "CI pipeline: sample-backend-app — pytest failed (import error in new dependency)",
+      "success": false,
+      "started_at": "2026-04-20T14:30:00+00:00",
+      "completed_at": "2026-04-20T14:33:22+00:00",
+      "duration_s": 202.0,
+      "error": "ModuleNotFoundError: No module named 'httpx'",
+      "metadata": { "sha": "def5678", "stage": "check" }
+    },
+    {
+      "task_id": "demo-007",
+      "task_type": "kg-query",
+      "description": "KG query: What policies govern the staging environment?",
+      "success": true,
+      "started_at": "2026-05-05T09:10:00+00:00",
+      "completed_at": "2026-05-05T09:10:08+00:00",
+      "duration_s": 8.2,
+      "error": null,
+      "metadata": { "flow": "knowledge-graph-query", "nodes_returned": 3 }
+    },
+    {
+      "task_id": "demo-008",
+      "task_type": "change-impact",
+      "description": "Change impact: add DOCKER_TLS_VERIFY=0 to gitea-actions-runner deployment",
+      "success": true,
+      "started_at": "2026-05-06T11:00:00+00:00",
+      "completed_at": "2026-05-06T11:00:19+00:00",
+      "duration_s": 19.4,
+      "error": null,
+      "metadata": { "target": "comp:gitea-actions-runner", "risk_level": "MEDIUM" }
+    }
+  ]
+}

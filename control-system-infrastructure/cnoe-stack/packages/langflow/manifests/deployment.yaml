@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langflow
+  namespace: langflow
+  labels:
+    app: langflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: langflow
+  template:
+    metadata:
+      labels:
+        app: langflow
+    spec:
+      containers:
+        - name: langflow
+          image: langflowai/langflow:1.5.0
+          ports:
+            - containerPort: 7860
+              name: http
+          env:
+            # ── Auth ──────────────────────────────────────────────────────
+            # oauth2-proxy sits in front; all requests that reach Langflow
+            # are already authenticated. Disable Langflow's own login screen.
+            - name: LANGFLOW_AUTO_LOGIN
+              value: "true"
+            - name: LANGFLOW_NEW_USER_IS_ACTIVE
+              value: "true"
+
+            # ── Path prefix (served at /langflow via nginx rewrite) ───────
+            # nginx strips /langflow before forwarding, so Langflow sees /
+            # No base-URL config needed — see ingress rewrite-target annotation.
+
+            # ── Persistence ──────────────────────────────────────────────
+            - name: LANGFLOW_DATABASE_URL
+              value: "sqlite:////app/data/langflow.db"
+            - name: LANGFLOW_CONFIG_DIR
+              value: "/app/data"
+
+            # ── LLM API keys (from K8s Secret) ────────────────────────────
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langflow-api-keys
+                  key: ANTHROPIC_API_KEY
+
+            # ── Networking ───────────────────────────────────────────────
+            - name: LANGFLOW_HOST
+              value: "0.0.0.0"
+            - name: LANGFLOW_PORT
+              value: "7860"
+            - name: LANGFLOW_WORKERS
+              value: "1"
+
+          volumeMounts:
+            - name: langflow-data
+              mountPath: /app/data
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 7860
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 7860
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+
+      volumes:
+        - name: langflow-data
+          persistentVolumeClaim:
+            claimName: langflow-data
+
+      # cnoe.localtest.me resolves to 127.0.0.1 inside the cluster (loopback).
+      # Map it to the nginx ingress ClusterIP so internal calls to the external
+      # URL work correctly. Update the IP if it changes after cluster rebuild.
+      hostAliases:
+        - ip: "10.96.232.4"
+          hostnames:
+            - "cnoe.localtest.me"

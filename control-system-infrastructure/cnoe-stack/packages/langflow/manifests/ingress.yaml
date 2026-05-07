@@ -1,0 +1,79 @@
+# ---------------------------------------------------------------------------
+# Ingress — path-based routing, matching the idpbuilder --use-path-routing pattern
+#
+# Two path rules on cnoe.localtest.me:
+#
+#   /langflow(/|$)(.*)  → oauth2-proxy validates token, proxies to langflow
+#   /oauth2             → oauth2-proxy handles OIDC callback + sign-in/out
+#
+# nginx auth-url/auth-signin annotations implement the external auth pattern:
+#   1. Request hits /langflow
+#   2. nginx sends a sub-request to oauth2-proxy /oauth2/auth
+#   3. If 202 → request forwarded to Langflow
+#   4. If 401 → user redirected to Keycloak login via /oauth2/sign_in
+# ---------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: langflow
+  namespace: langflow
+  annotations:
+    # ── External auth (oauth2-proxy) ──────────────────────────────────────
+    nginx.ingress.kubernetes.io/auth-url: "https://cnoe.localtest.me:8443/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://cnoe.localtest.me:8443/oauth2/sign_in?rd=$scheme://$host$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,Authorization"
+
+    # ── Path rewrite: strip /langflow prefix before forwarding to Langflow ─
+    # Langflow runs at / internally; nginx rewrites /langflow/foo → /foo
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+
+    # ── TLS passthrough for internal self-signed cert ─────────────────────
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # ── WebSocket support (Langflow uses SSE / websockets) ────────────────
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cnoe.localtest.me
+      http:
+        paths:
+          # Main Langflow UI — protected by oauth2-proxy
+          - path: /langflow(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: langflow
+                port:
+                  number: 7860
+---
+# Separate ingress for oauth2-proxy paths (no auth annotation — these ARE the auth endpoints)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oauth2-proxy
+  namespace: langflow
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cnoe.localtest.me
+      http:
+        paths:
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: oauth2-proxy
+                port:
+                  number: 4180

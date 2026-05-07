@@ -1,0 +1,279 @@
+{
+  "name": "Infrastructure Advisor",
+  "description": "Conversational infrastructure advisor. Combines knowledge graph context, security awareness, and Claude to answer questions, suggest changes, and flag risks. Full chat interface with memory.",
+  "is_component": false,
+  "data": {
+    "nodes": [
+      {
+        "id": "ChatInput-user",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 300 },
+        "data": {
+          "id": "ChatInput-user",
+          "type": "ChatInput",
+          "node": {
+            "template": {
+              "_type": "ChatInput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "placeholder": "Ask about your infrastructure...",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Message",
+                "advanced": false,
+                "value": "",
+                "info": "Your question or request about the infrastructure"
+              },
+              "sender": {
+                "field_type": "str",
+                "required": false,
+                "show": false,
+                "name": "sender",
+                "display_name": "Sender",
+                "advanced": false,
+                "value": "User"
+              },
+              "sender_name": {
+                "field_type": "str",
+                "required": false,
+                "show": false,
+                "name": "sender_name",
+                "display_name": "Sender Name",
+                "advanced": false,
+                "value": "User"
+              },
+              "session_id": {
+                "field_type": "str",
+                "required": false,
+                "show": true,
+                "name": "session_id",
+                "display_name": "Session ID",
+                "advanced": true,
+                "value": ""
+              }
+            },
+            "description": "User chat message input",
+            "display_name": "Chat Input",
+            "documentation": "",
+            "base_classes": ["Message"]
+          }
+        }
+      },
+      {
+        "id": "TextInput-graph-path",
+        "type": "genericNode",
+        "position": { "x": 80, "y": 560 },
+        "data": {
+          "id": "TextInput-graph-path",
+          "type": "TextInput",
+          "node": {
+            "template": {
+              "_type": "TextInput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "placeholder": "knowledge-graph/graph.json",
+                "list": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Graph JSON Path",
+                "advanced": false,
+                "value": "knowledge-graph/graph.json"
+              }
+            },
+            "description": "Path to knowledge graph JSON",
+            "display_name": "Graph Path",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "CustomComponent-kg-context",
+        "type": "genericNode",
+        "position": { "x": 480, "y": 560 },
+        "data": {
+          "id": "CustomComponent-kg-context",
+          "type": "CustomComponent",
+          "node": {
+            "template": {
+              "_type": "CustomComponent",
+              "code": {
+                "field_type": "code",
+                "required": true,
+                "show": true,
+                "name": "code",
+                "display_name": "Code",
+                "advanced": false,
+                "value": "import json\nfrom pathlib import Path\nfrom langflow.custom import CustomComponent\n\nclass KGContextComponent(CustomComponent):\n    display_name = \"KG Context Builder\"\n    description = \"Loads graph.json and produces a compact system context string\"\n\n    def build_config(self):\n        return {\n            \"graph_path\": {\"display_name\": \"Graph JSON Path\", \"field_type\": \"str\", \"required\": False, \"value\": \"knowledge-graph/graph.json\"}\n        }\n\n    def build(self, graph_path: str = \"knowledge-graph/graph.json\") -> str:\n        path = Path(graph_path)\n        if not path.is_absolute():\n            path = Path.cwd() / graph_path\n        if not path.exists():\n            return \"[Knowledge graph not available]\"\n\n        graph = json.loads(path.read_text())\n\n        # Group nodes by type for compact display\n        by_type: dict = {}\n        for n in graph[\"nodes\"]:\n            by_type.setdefault(n[\"type\"], []).append(n)\n\n        lines = [\"## Infrastructure Knowledge Graph\\n\"]\n        for ntype, nodes in by_type.items():\n            lines.append(f\"### {ntype}s\")\n            for n in nodes:\n                name = n[\"attrs\"].get(\"name\", n[\"id\"])\n                extras = []\n                for k in [\"language\", \"tier\", \"enforcer\", \"trigger\"]:\n                    if k in n[\"attrs\"]:\n                        extras.append(f\"{k}={n['attrs'][k]}\")\n                line = f\"- `{n['id']}` ({name})\"\n                if extras:\n                    line += f\" [{', '.join(extras)}]\"\n                lines.append(line)\n            lines.append(\"\")\n\n        lines.append(\"### Key Relationships\")\n        for e in graph[\"edges\"]:\n            lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n\n        return \"\\n\".join(lines)\n"
+              }
+            },
+            "description": "Loads and compacts graph.json into system context",
+            "display_name": "KG Context Builder",
+            "documentation": "",
+            "base_classes": ["Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "ChatAnthropic-advisor",
+        "type": "genericNode",
+        "position": { "x": 880, "y": 300 },
+        "data": {
+          "id": "ChatAnthropic-advisor",
+          "type": "ChatAnthropic",
+          "node": {
+            "template": {
+              "_type": "ChatAnthropic",
+              "anthropic_api_key": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "anthropic_api_key",
+                "display_name": "Anthropic API Key",
+                "advanced": false,
+                "value": "",
+                "password": true
+              },
+              "model_name": {
+                "field_type": "str",
+                "required": true,
+                "show": true,
+                "name": "model_name",
+                "display_name": "Model Name",
+                "advanced": false,
+                "value": "claude-haiku-4-5-20251001",
+                "options": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"]
+              },
+              "temperature": {
+                "field_type": "float",
+                "required": false,
+                "show": true,
+                "name": "temperature",
+                "display_name": "Temperature",
+                "advanced": true,
+                "value": 0.2
+              },
+              "system_message": {
+                "field_type": "str",
+                "required": false,
+                "show": true,
+                "name": "system_message",
+                "display_name": "System Message",
+                "advanced": false,
+                "value": "You are an expert platform engineering advisor for a GitOps-managed cloud infrastructure system.\n\nYour responsibilities:\n1. Answer questions about services, components, repositories, environments, and policies\n2. Assess risks of proposed changes using the knowledge graph\n3. Recommend safe, GitOps-compliant change procedures\n4. Flag policy violations and security concerns\n5. Guide users through runbooks when needed\n\nDesign principles you enforce:\n- Security > Reliability > Capability\n- All changes flow through Git (GitOps rule — no out-of-band mutations)\n- Every production change requires a PR with admin-human approval (HITL gate)\n- Secrets never in Git; use Gitea Actions secrets\n- Workflow files (.gitea/workflows/*) are protected and cannot be changed via PR\n\nAlways be specific: reference node IDs, policy names, and runbook steps. If you don't know something, say so and suggest how to find the answer."
+              },
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "show": false,
+                "name": "input_value",
+                "display_name": "Input",
+                "advanced": false,
+                "value": ""
+              }
+            },
+            "description": "Claude as the infrastructure advisor",
+            "display_name": "Infrastructure Advisor (Claude)",
+            "documentation": "",
+            "base_classes": ["LanguageModel", "Message", "Text"]
+          }
+        }
+      },
+      {
+        "id": "ChatOutput-advisor",
+        "type": "genericNode",
+        "position": { "x": 1240, "y": 300 },
+        "data": {
+          "id": "ChatOutput-advisor",
+          "type": "ChatOutput",
+          "node": {
+            "template": {
+              "_type": "ChatOutput",
+              "input_value": {
+                "field_type": "str",
+                "required": false,
+                "show": true,
+                "name": "input_value",
+                "display_name": "Message",
+                "advanced": false,
+                "value": ""
+              },
+              "sender": {
+                "field_type": "str",
+                "required": false,
+                "show": false,
+                "name": "sender",
+                "display_name": "Sender",
+                "advanced": false,
+                "value": "Machine"
+              },
+              "sender_name": {
+                "field_type": "str",
+                "required": false,
+                "show": false,
+                "name": "sender_name",
+                "display_name": "Sender Name",
+                "advanced": false,
+                "value": "Infrastructure Advisor"
+              }
+            },
+            "description": "Advisor response output",
+            "display_name": "Chat Output",
+            "documentation": "",
+            "base_classes": ["Message"]
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "graph-path-to-kg",
+        "source": "TextInput-graph-path",
+        "target": "CustomComponent-kg-context",
+        "sourceHandle": "TextInput-graph-path-output-Message",
+        "targetHandle": "CustomComponent-kg-context-input-graph_path",
+        "data": {
+          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-graph-path", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "graph_path", "id": "CustomComponent-kg-context", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "kg-to-advisor",
+        "source": "CustomComponent-kg-context",
+        "target": "ChatAnthropic-advisor",
+        "sourceHandle": "CustomComponent-kg-context-output-Message",
+        "targetHandle": "ChatAnthropic-advisor-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "CustomComponent", "id": "CustomComponent-kg-context", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-advisor", "inputTypes": ["Message", "Text"], "type": "str" }
+        }
+      },
+      {
+        "id": "user-to-advisor",
+        "source": "ChatInput-user",
+        "target": "ChatAnthropic-advisor",
+        "sourceHandle": "ChatInput-user-output-Message",
+        "targetHandle": "ChatAnthropic-advisor-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "ChatInput", "id": "ChatInput-user", "name": "message", "output_types": ["Message"] },
+          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-advisor", "inputTypes": ["Message"], "type": "str" }
+        }
+      },
+      {
+        "id": "advisor-to-output",
+        "source": "ChatAnthropic-advisor",
+        "target": "ChatOutput-advisor",
+        "sourceHandle": "ChatAnthropic-advisor-output-Message",
+        "targetHandle": "ChatOutput-advisor-input-input_value",
+        "data": {
+          "sourceHandle": { "dataType": "ChatAnthropic", "id": "ChatAnthropic-advisor", "name": "message", "output_types": ["Message", "Text"] },
+          "targetHandle": { "fieldName": "input_value", "id": "ChatOutput-advisor", "inputTypes": ["Message"], "type": "str" }
+        }
+      }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 0.8 }
+  }
+}

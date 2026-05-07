@@ -1,0 +1,48 @@
+name: Knowledge Graph Extraction
+
+# Trigger on changes to documentation, infrastructure manifests, or the
+# extraction script itself. Rebuilds knowledge-graph/graph.json and commits
+# the updated graph back to the repo.
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '**.tf'
+      - '**/deployment.yaml'
+      - '**/kustomization.yaml'
+      - '**/app.yaml'
+      - 'knowledge-graph/extract.py'
+      - 'knowledge-graph/schema.py'
+    branches-ignore:
+      - 'kg-update/**'   # avoid recursive trigger on bot commits
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so git diff HEAD~1 works
+          fetch-depth: 2
+
+      - name: Install Python + dependencies
+        run: |
+          apt-get update -q
+          apt-get install -y -q python3-pip git
+          pip3 install anthropic pydantic
+
+      - name: Run extraction
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cd knowledge-graph
+          python3 extract.py --all --commit
+
+      - name: Summarise
+        run: |
+          echo "Graph nodes: $(python3 -c "import json; d=json.load(open('knowledge-graph/graph.json')); print(len(d['nodes']))")"
+          echo "Graph edges: $(python3 -c "import json; d=json.load(open('knowledge-graph/graph.json')); print(len(d['edges']))")"

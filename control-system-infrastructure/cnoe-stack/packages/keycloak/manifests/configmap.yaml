@@ -1,0 +1,41 @@
+# Realm import configuration for the 'cnoe' realm.
+# Keycloak imports this at startup via --import-realm.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: keycloak
+data:
+  cnoe.json: |
+    {
+      "realm": "cnoe",
+      "enabled": true,
+      "displayName": "CNOE Platform",
+      "displayNameHtml": "<b>CNOE</b> Platform",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": true,
+      "sslRequired": "none",
+      "accessTokenLifespan": 3600,
+      "ssoSessionMaxLifespan": 36000,
+      "defaultSignatureAlgorithm": "RS256",
+      "users": [
+        {
+          "username": "platform",
+          "enabled": true,
+          "emailVerified": true,
+          "email": "platform@cnoe.local",
+          "firstName": "Platform",
+          "lastName": "User",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "platform",
+              "temporary": true
+            }
+          ],
+          "realmRoles": ["default-roles-cnoe"]
+        }
+      ]
+    }
