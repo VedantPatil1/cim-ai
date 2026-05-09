@@ -19,13 +19,12 @@ make clean         # remove docs/site/
 ### Control Plane Bootstrap
 
 ```bash
-# Full bootstrap: kind cluster + Gitea + ArgoCD + Keycloak + Langflow + Gitea Actions Runner
+# Full bootstrap: kind cluster + Gitea + ArgoCD + Langflow + Gitea Actions Runner
 idpbuilder create \
   --recreate \
   --use-path-routing \
   -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml \
   -p control-system-infrastructure/cnoe-stack/packages/gitea-runner \
-  -p control-system-infrastructure/cnoe-stack/packages/keycloak \
   -p control-system-infrastructure/cnoe-stack/packages/langflow
 ```
 
@@ -38,18 +37,7 @@ kubectl create secret generic langflow-api-keys \
 ```
 
 **IMPORTANT after each cluster rebuild:**
-1. The nginx ingress ClusterIP changes. Update `hostAliases` in `manifests/deployment.yaml` and `manifests/oauth2-proxy.yaml` with the new IP:
-   ```bash
-   kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.clusterIP}'
-   ```
-   Push the change to Gitea: `cd /tmp/langflow-manifests && git add . && git commit ... && git push`
-
-2. If the langflow ArgoCD sync fails (oauth2-proxy blocks PostSync), run the Keycloak client job manually:
-   ```bash
-   kubectl apply -f control-system-infrastructure/cnoe-stack/packages/langflow/manifests/keycloak-client-job.yaml
-   ```
-
-3. Get the new Gitea token after rebuild:
+1. Get the new Gitea token:
    ```bash
    kubectl get secret -n gitea gitea-credential -o jsonpath='{.data.token}' | base64 -d
    ```
@@ -57,8 +45,7 @@ kubectl create secret generic langflow-api-keys \
 URLs after bootstrap:
 - ArgoCD:   https://cnoe.localtest.me:8443/argocd
 - Gitea:    https://cnoe.localtest.me:8443/gitea
-- Keycloak: https://cnoe.localtest.me:8443/keycloak  (admin: admin / auto-generated password)
-- Langflow: https://cnoe.localtest.me:8443/langflow   (login via Keycloak cnoe realm, user: platform / platform)
+- Langflow: https://cnoe.localtest.me:8443/langflow   (no SSO — direct access, auto-login enabled)
 
 ## Architecture
 

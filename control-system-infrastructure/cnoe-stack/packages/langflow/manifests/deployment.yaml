@@ -23,16 +23,10 @@ spec:
               name: http
           env:
             # ── Auth ──────────────────────────────────────────────────────
-            # oauth2-proxy sits in front; all requests that reach Langflow
-            # are already authenticated. Disable Langflow's own login screen.
             - name: LANGFLOW_AUTO_LOGIN
               value: "true"
             - name: LANGFLOW_NEW_USER_IS_ACTIVE
               value: "true"
-
-            # ── Path prefix (served at /langflow via nginx rewrite) ───────
-            # nginx strips /langflow before forwarding, so Langflow sees /
-            # No base-URL config needed — see ingress rewrite-target annotation.
 
             # ── Persistence ──────────────────────────────────────────────
             - name: LANGFLOW_DATABASE_URL
@@ -87,11 +81,3 @@ spec:
         - name: langflow-data
           persistentVolumeClaim:
             claimName: langflow-data
-
-      # cnoe.localtest.me resolves to 127.0.0.1 inside the cluster (loopback).
-      # Map it to the nginx ingress ClusterIP so internal calls to the external
-      # URL work correctly. Update the IP if it changes after cluster rebuild.
-      hostAliases:
-        - ip: "10.96.232.4"
-          hostnames:
-            - "cnoe.localtest.me"
