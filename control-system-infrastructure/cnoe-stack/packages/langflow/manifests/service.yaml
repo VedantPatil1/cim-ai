@@ -11,3 +11,17 @@ spec:
       port: 7860
       targetPort: 7860
   type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: langflow
+spec:
+  selector:
+    app: oauth2-proxy
+  ports:
+    - name: http
+      port: 4180
+      targetPort: 4180
+  type: ClusterIP

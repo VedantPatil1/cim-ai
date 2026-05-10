@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: keycloak
+data:
+  cnoe-realm.json: |
+    {
+      "realm": "cnoe",
+      "enabled": true,
+      "displayName": "CNOE Platform",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": false,
+      "sslRequired": "external",
+      "clients": [
+        {
+          "clientId": "langflow",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "secret": "langflow-secret-local",
+          "redirectUris": [
+            "https://cnoe.localtest.me:8443/langflow/oauth2/callback"
+          ],
+          "webOrigins": [
+            "https://cnoe.localtest.me:8443"
+          ],
+          "standardFlowEnabled": true,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false
+        }
+      ],
+      "users": [
+        {
+          "username": "platform",
+          "enabled": true,
+          "emailVerified": true,
+          "email": "platform@cnoe.local",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "platform",
+              "temporary": false
+            }
+          ]
+        }
+      ]
+    }
