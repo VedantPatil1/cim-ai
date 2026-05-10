@@ -19,27 +19,12 @@ make clean         # remove docs/site/
 ### Control Plane Bootstrap
 
 ```bash
-# Full bootstrap: kind cluster + Gitea + ArgoCD + Keycloak + Langflow + Gitea Actions Runner
+# Full bootstrap: kind cluster + Gitea + ArgoCD + Gitea Actions Runner
 idpbuilder create \
   --recreate \
   --use-path-routing \
   -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml \
-  -p control-system-infrastructure/cnoe-stack/packages/gitea-runner \
-  -p control-system-infrastructure/cnoe-stack/packages/langflow
-```
-
-```bash
-# After bootstrap: set the Anthropic API key for Langflow
-kubectl create secret generic langflow-api-keys \
-  -n langflow \
-  --from-literal=ANTHROPIC_API_KEY=sk-ant-... \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-```bash
-# After bootstrap: manually apply the Keycloak ArgoCD Application
-# (idpbuilder doesn't know about keycloak — it's managed separately via its Gitea repo)
-kubectl apply -f control-system-infrastructure/cnoe-stack/packages/keycloak/app.yaml
+  -p control-system-infrastructure/cnoe-stack/packages/gitea-runner
 ```
 
 **IMPORTANT after each cluster rebuild:**
@@ -47,17 +32,10 @@ kubectl apply -f control-system-infrastructure/cnoe-stack/packages/keycloak/app.
    ```bash
    kubectl get secret -n gitea gitea-credential -o jsonpath='{.data.token}' | base64 -d
    ```
-2. Update `hostAliases` IP in langflow + oauth2-proxy deployments if nginx ClusterIP changed:
-   ```bash
-   kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.clusterIP}'
-   ```
-   Push the change to the `idpbuilder-localdev-langflow-manifests` Gitea repo.
 
 URLs after bootstrap:
-- ArgoCD:   https://cnoe.localtest.me:8443/argocd
-- Gitea:    https://cnoe.localtest.me:8443/gitea
-- Keycloak: https://cnoe.localtest.me:8443/keycloak  (admin / admin)
-- Langflow: https://cnoe.localtest.me:8443/langflow   (SSO via Keycloak — user: platform / platform)
+- ArgoCD: https://cnoe.localtest.me:8443/argocd
+- Gitea:  https://cnoe.localtest.me:8443/gitea
 
 ## Architecture
 
