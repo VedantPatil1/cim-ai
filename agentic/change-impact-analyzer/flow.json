@@ -369,13 +369,11 @@
     ],
     "edges": [
       {
-        "id": "e1",
+        "id": "edge-TextInput-1-CustomComponent-1",
         "source": "TextInput-1",
         "target": "CustomComponent-1",
-        "sourceHandle": "TextInput-1|text|TextInput-1",
-        "targetHandle": "CustomComponent-1|diff|CustomComponent-1",
-        "animated": false,
-        "type": "default",
+        "sourceHandle": "TextInput-1|text|0",
+        "targetHandle": "CustomComponent-1|diff|0",
         "data": {
           "sourceHandle": {
             "dataType": "TextInput",
@@ -396,13 +394,11 @@
         }
       },
       {
-        "id": "e2",
+        "id": "edge-CustomComponent-1-TextOutput-1",
         "source": "CustomComponent-1",
         "target": "TextOutput-1",
-        "sourceHandle": "CustomComponent-1|analysis|CustomComponent-1",
-        "targetHandle": "TextOutput-1|input_value|TextOutput-1",
-        "animated": false,
-        "type": "default",
+        "sourceHandle": "CustomComponent-1|analysis|0",
+        "targetHandle": "TextOutput-1|input_value|0",
         "data": {
           "sourceHandle": {
             "dataType": "CustomComponent",

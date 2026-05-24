@@ -382,7 +382,58 @@
         }
       }
     ],
-    "edges": [],
+    "edges": [
+      {
+        "id": "edge-TextInput-1-CustomComponent-1",
+        "source": "TextInput-1",
+        "target": "CustomComponent-1",
+        "sourceHandle": "TextInput-1|text|0",
+        "targetHandle": "CustomComponent-1|diff|0",
+        "data": {
+          "sourceHandle": {
+            "dataType": "TextInput",
+            "id": "TextInput-1",
+            "name": "text",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "diff",
+            "id": "CustomComponent-1",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
+        }
+      },
+      {
+        "id": "edge-CustomComponent-1-TextOutput-1",
+        "source": "CustomComponent-1",
+        "target": "TextOutput-1",
+        "sourceHandle": "CustomComponent-1|analysis|0",
+        "targetHandle": "TextOutput-1|input_value|0",
+        "data": {
+          "sourceHandle": {
+            "dataType": "CustomComponent",
+            "id": "CustomComponent-1",
+            "name": "analysis",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "TextOutput-1",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
+        }
+      }
+    ],
     "viewport": {
       "x": 216.25172908377436,
       "y": 397.82514661650225,
