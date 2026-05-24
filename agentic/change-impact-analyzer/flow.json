@@ -188,7 +188,7 @@
               {
                 "allows_loop": false,
                 "cache": true,
-                "display_name": "Analysis",
+                "display_name": "Impact Analysis",
                 "group_outputs": false,
                 "method": "analyse",
                 "name": "analysis",
@@ -224,9 +224,9 @@
               "diff": {
                 "_input_type": "MessageTextInput",
                 "advanced": false,
-                "display_name": "Git Diff",
+                "display_name": "Proposed Change",
                 "dynamic": false,
-                "info": "The git diff to analyse",
+                "info": "Describe the proposed infrastructure change",
                 "input_types": [
                   "Message"
                 ],
@@ -430,7 +430,6 @@
     }
   },
   "is_component": false,
-  "updated_at": "2026-05-10T16:11:05+00:00",
   "webhook": false,
   "endpoint_name": null,
   "tags": null,
@@ -439,6 +438,6 @@
   "action_name": null,
   "action_description": null,
   "access_type": "PRIVATE",
-  "user_id": "b52f5852-c9ca-4067-b2a2-509d0d4a3916",
+  "id": "b908e9c2-340d-454b-9e1b-ab356f66cceb",
   "folder_id": "c3941cb2-388b-41e4-95a6-1519162f392e"
 }

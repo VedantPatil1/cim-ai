@@ -140,6 +140,11 @@
             "tool_mode": false
           },
           "showNode": true
+        },
+        "selected": false,
+        "measured": {
+          "width": 320,
+          "height": 215
         }
       },
       {
@@ -188,7 +193,7 @@
               {
                 "allows_loop": false,
                 "cache": true,
-                "display_name": "Analysis",
+                "display_name": "Advice",
                 "group_outputs": false,
                 "method": "analyse",
                 "name": "analysis",
@@ -224,9 +229,9 @@
               "diff": {
                 "_input_type": "MessageTextInput",
                 "advanced": false,
-                "display_name": "Git Diff",
+                "display_name": "User Message",
                 "dynamic": false,
-                "info": "The git diff to analyse",
+                "info": "Ask about your infrastructure",
                 "input_types": [
                   "Message"
                 ],
@@ -250,6 +255,11 @@
             "tool_mode": false
           },
           "showNode": true
+        },
+        "selected": false,
+        "measured": {
+          "width": 320,
+          "height": 221
         }
       },
       {
@@ -364,73 +374,22 @@
             "tool_mode": false
           },
           "showNode": true
+        },
+        "selected": false,
+        "measured": {
+          "width": 320,
+          "height": 207
         }
       }
     ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "TextInput-1",
-        "target": "CustomComponent-1",
-        "sourceHandle": "TextInput-1|text|TextInput-1",
-        "targetHandle": "CustomComponent-1|diff|CustomComponent-1",
-        "animated": false,
-        "type": "default",
-        "data": {
-          "sourceHandle": {
-            "dataType": "TextInput",
-            "id": "TextInput-1",
-            "name": "text",
-            "output_types": [
-              "Message"
-            ]
-          },
-          "targetHandle": {
-            "fieldName": "diff",
-            "id": "CustomComponent-1",
-            "inputTypes": [
-              "Message"
-            ],
-            "type": "str"
-          }
-        }
-      },
-      {
-        "id": "e2",
-        "source": "CustomComponent-1",
-        "target": "TextOutput-1",
-        "sourceHandle": "CustomComponent-1|analysis|CustomComponent-1",
-        "targetHandle": "TextOutput-1|input_value|TextOutput-1",
-        "animated": false,
-        "type": "default",
-        "data": {
-          "sourceHandle": {
-            "dataType": "CustomComponent",
-            "id": "CustomComponent-1",
-            "name": "analysis",
-            "output_types": [
-              "Message"
-            ]
-          },
-          "targetHandle": {
-            "fieldName": "input_value",
-            "id": "TextOutput-1",
-            "inputTypes": [
-              "Message"
-            ],
-            "type": "str"
-          }
-        }
-      }
-    ],
+    "edges": [],
     "viewport": {
-      "x": 0,
-      "y": 0,
-      "zoom": 1
+      "x": -35.29615567019664,
+      "y": 71.73170430888956,
+      "zoom": 1.1375491912402644
     }
   },
   "is_component": false,
-  "updated_at": "2026-05-10T16:11:05+00:00",
   "webhook": false,
   "endpoint_name": null,
   "tags": null,
@@ -439,6 +398,6 @@
   "action_name": null,
   "action_description": null,
   "access_type": "PRIVATE",
-  "user_id": "b52f5852-c9ca-4067-b2a2-509d0d4a3916",
+  "id": "e69c911e-b58e-4cb5-920b-9e1f0ea2d1a6",
   "folder_id": "c3941cb2-388b-41e4-95a6-1519162f392e"
 }
