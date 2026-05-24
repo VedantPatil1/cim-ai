@@ -11,9 +11,16 @@ nav = [
   { Dissertation = [
     { Abstract = "dissertation/abstract.md" },
     { Security = "dissertation/security.md" },
+    { Presentation = "dissertation/presentation.md" },
   ]},
   { Methodology = "methodology.md" },
   { "Knowledge Graph" = "knowledge-graph.md" },
+  { "Agentic Layer" = [
+    { "Overview" = "agentic/index.md" },
+    { "Langflow in CNOE Stack" = "agentic/langflow-cnoe.md" },
+    { "Usage Guide" = "agentic/usage.md" },
+    { "Demo Scenarios" = "agentic/scenarios.md" },
+  ]},
   { Installation = [
     { Overview = "installation/index.md" },
     { "Phase 1 Setup" = "installation/Phase1.md" },

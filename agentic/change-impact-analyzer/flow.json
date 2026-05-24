@@ -1,332 +1,440 @@
 {
   "name": "Change Impact Analyzer",
-  "description": "Given a proposed infrastructure change, determines blast radius: which services, environments, and policies are affected. Uses the knowledge graph to trace dependencies.",
-  "is_component": false,
+  "description": "Calls Ollama to perform security analysis on a git diff",
+  "icon": null,
+  "icon_bg_color": null,
+  "gradient": null,
   "data": {
     "nodes": [
       {
-        "id": "TextInput-change",
+        "id": "TextInput-1",
         "type": "genericNode",
-        "position": { "x": 80, "y": 160 },
+        "position": {
+          "x": 100,
+          "y": 300
+        },
         "data": {
-          "id": "TextInput-change",
+          "id": "TextInput-1",
           "type": "TextInput",
           "node": {
-            "template": {
-              "_type": "TextInput",
-              "input_value": {
-                "field_type": "str",
-                "required": true,
-                "placeholder": "e.g. Modify the gitea-actions-runner deployment to add a new env var DOCKER_TLS_VERIFY=0",
-                "list": false,
-                "show": true,
-                "name": "input_value",
-                "display_name": "Proposed Change",
-                "advanced": false,
-                "value": "",
-                "info": "Describe the change you want to make to the infrastructure"
-              }
-            },
-            "description": "Description of the proposed change",
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Get user text inputs.",
             "display_name": "Proposed Change",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
-        }
-      },
-      {
-        "id": "TextInput-target",
-        "type": "genericNode",
-        "position": { "x": 80, "y": 360 },
-        "data": {
-          "id": "TextInput-target",
-          "type": "TextInput",
-          "node": {
+            "documentation": "https://docs.langflow.org/text-input-and-output",
+            "edited": false,
+            "field_order": [
+              "input_value",
+              "use_global_variable"
+            ],
+            "frozen": false,
+            "icon": "type",
+            "legacy": false,
+            "metadata": {
+              "code_hash": "518f16485886",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 1
+              },
+              "module": "lfx.components.input_output.text.TextInputComponent"
+            },
+            "minimized": false,
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Output Text",
+                "group_outputs": false,
+                "method": "text_response",
+                "name": "text",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
             "template": {
-              "_type": "TextInput",
-              "input_value": {
-                "field_type": "str",
-                "required": false,
-                "placeholder": "e.g. comp:gitea-actions-runner, svc:sample-backend-api",
+              "_type": "Component",
+              "code": {
+                "advanced": true,
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
                 "list": false,
+                "load_from_db": false,
+                "multiline": true,
+                "name": "code",
+                "password": false,
+                "placeholder": "",
+                "required": true,
                 "show": true,
-                "name": "input_value",
-                "display_name": "Target Component / Service",
+                "title_case": false,
+                "type": "code",
+                "value": "from typing import Any\n\nfrom lfx.base.io.text import TextComponent\nfrom lfx.io import BoolInput, MultilineInput, Output\nfrom lfx.schema.message import Message\n\n\nclass TextInputComponent(TextComponent):\n    display_name = \"Text Input\"\n    description = \"Get user text inputs.\"\n    documentation: str = \"https://docs.langflow.org/text-input-and-output\"\n    icon = \"type\"\n    name = \"TextInput\"\n\n    inputs = [\n        MultilineInput(\n            name=\"input_value\",\n            display_name=\"Text\",\n            info=\"Text to be passed as input.\",\n        ),\n        BoolInput(\n            name=\"use_global_variable\",\n            display_name=\"Use Global Variable\",\n            info=\"Enable to select from global variables (shows globe icon). Disables multiline editing.\",\n            value=False,\n            advanced=True,\n            real_time_refresh=True,\n        ),\n    ]\n    outputs = [\n        Output(display_name=\"Output Text\", name=\"text\", method=\"text_response\"),\n    ]\n\n    def update_build_config(self, build_config: dict, field_value: Any, field_name: str | None = None) -> dict:\n        if field_name == \"use_global_variable\":\n            if field_value:\n                build_config[\"input_value\"][\"multiline\"] = False\n                build_config[\"input_value\"][\"password\"] = True\n            else:\n                build_config[\"input_value\"][\"multiline\"] = True\n                build_config[\"input_value\"][\"password\"] = False\n        return build_config\n\n    def text_response(self) -> Message:\n        return Message(\n            text=self.input_value,\n        )\n"
+              },
+              "input_value": {
+                "_input_type": "MultilineInput",
                 "advanced": false,
-                "value": "",
-                "info": "The node ID being changed (helps scope the blast radius analysis)"
+                "ai_enabled": false,
+                "copy_field": false,
+                "display_name": "Proposed Change",
+                "dynamic": false,
+                "info": "Text to be passed as input.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "multiline": true,
+                "name": "input_value",
+                "override_skip": false,
+                "password": false,
+                "placeholder": "Enter proposed change...",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "track_in_telemetry": false,
+                "type": "str",
+                "value": ""
+              },
+              "use_global_variable": {
+                "_input_type": "BoolInput",
+                "advanced": true,
+                "display_name": "Use Global Variable",
+                "dynamic": false,
+                "info": "Enable to select from global variables (shows globe icon). Disables multiline editing.",
+                "list": false,
+                "list_add_label": "Add More",
+                "name": "use_global_variable",
+                "override_skip": false,
+                "placeholder": "",
+                "real_time_refresh": true,
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "value": false
               }
             },
-            "description": "Node ID of the target being changed",
-            "display_name": "Target Node",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
+            "tool_mode": false
+          },
+          "showNode": true
         }
       },
       {
-        "id": "TextInput-graph-path",
+        "id": "CustomComponent-1",
         "type": "genericNode",
-        "position": { "x": 80, "y": 560 },
+        "position": {
+          "x": 550,
+          "y": 250
+        },
         "data": {
-          "id": "TextInput-graph-path",
-          "type": "TextInput",
-          "node": {
-            "template": {
-              "_type": "TextInput",
-              "input_value": {
-                "field_type": "str",
-                "required": false,
-                "placeholder": "/path/to/knowledge-graph/graph.json",
-                "list": false,
-                "show": true,
-                "name": "input_value",
-                "display_name": "Graph JSON Path",
-                "advanced": false,
-                "value": "knowledge-graph/graph.json"
-              }
-            },
-            "description": "Path to graph.json",
-            "display_name": "Graph Path",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
-        }
-      },
-      {
-        "id": "CustomComponent-impact",
-        "type": "genericNode",
-        "position": { "x": 500, "y": 430 },
-        "data": {
-          "id": "CustomComponent-impact",
+          "id": "CustomComponent-1",
           "type": "CustomComponent",
           "node": {
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Calls Ollama to perform security analysis on a git diff",
+            "display_name": "Change Impact Analyzer",
+            "documentation": "https://docs.langflow.org/components-custom-components",
+            "edited": true,
+            "field_order": [
+              "diff"
+            ],
+            "frozen": false,
+            "icon": "code",
+            "legacy": false,
+            "metadata": {
+              "code_hash": "d50a68a6fa57",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 1
+              },
+              "module": "lfx.components.custom_component.custom_component.CustomComponent"
+            },
+            "minimized": false,
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Analysis",
+                "group_outputs": false,
+                "method": "analyse",
+                "name": "analysis",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
             "template": {
-              "_type": "CustomComponent",
+              "_type": "Component",
               "code": {
-                "field_type": "code",
-                "required": true,
-                "show": true,
-                "name": "code",
-                "display_name": "Code",
-                "advanced": false,
-                "value": "import json\nfrom pathlib import Path\nfrom langflow.custom import CustomComponent\n\nclass ImpactExtractorComponent(CustomComponent):\n    display_name = \"Impact Extractor\"\n    description = \"Extracts the subgraph relevant to a target node for blast radius analysis\"\n\n    def build_config(self):\n        return {\n            \"graph_path\": {\"display_name\": \"Graph JSON Path\", \"field_type\": \"str\", \"required\": False, \"value\": \"knowledge-graph/graph.json\"},\n            \"target_node\": {\"display_name\": \"Target Node ID\", \"field_type\": \"str\", \"required\": False, \"value\": \"\"},\n        }\n\n    def build(self, graph_path: str = \"knowledge-graph/graph.json\", target_node: str = \"\") -> str:\n        path = Path(graph_path)\n        if not path.is_absolute():\n            path = Path.cwd() / graph_path\n        if not path.exists():\n            return f\"ERROR: graph.json not found at {path}\"\n\n        graph = json.loads(path.read_text())\n        nodes_by_id = {n[\"id\"]: n for n in graph[\"nodes\"]}\n        edges = graph[\"edges\"]\n\n        if not target_node:\n            # Return full graph summary\n            lines = [f\"# Full Graph Context ({len(graph['nodes'])} nodes, {len(graph['edges'])} edges)\"]\n            lines.append(\"\\n## All Nodes\")\n            for n in graph[\"nodes\"]:\n                lines.append(f\"- [{n['type']}] {n['id']}\")\n            lines.append(\"\\n## All Edges\")\n            for e in edges:\n                lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n            return \"\\n\".join(lines)\n\n        # BFS: find all nodes reachable from target (both directions)\n        visited = set()\n        queue = [target_node]\n        relevant_edges = []\n        while queue:\n            node_id = queue.pop(0)\n            if node_id in visited:\n                continue\n            visited.add(node_id)\n            for e in edges:\n                if e[\"from\"] == node_id and e[\"to\"] not in visited:\n                    relevant_edges.append(e)\n                    queue.append(e[\"to\"])\n                if e[\"to\"] == node_id and e[\"from\"] not in visited:\n                    relevant_edges.append(e)\n                    queue.append(e[\"from\"])\n\n        lines = [f\"# Impact Subgraph for: {target_node}\"]\n        lines.append(f\"Reachable nodes: {len(visited)}\")\n        lines.append(\"\\n## Connected Nodes\")\n        for nid in visited:\n            n = nodes_by_id.get(nid, {\"type\": \"Unknown\", \"attrs\": {}})\n            lines.append(f\"- [{n.get('type', '?')}] {nid}\")\n        lines.append(\"\\n## Relevant Relationships\")\n        seen_edges = set()\n        for e in relevant_edges:\n            key = f\"{e['from']}-{e['rel']}-{e['to']}\"\n            if key not in seen_edges:\n                seen_edges.add(key)\n                lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n        return \"\\n\".join(lines)\n"
-              }
-            },
-            "description": "Extracts subgraph for blast radius computation",
-            "display_name": "Impact Extractor",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
-        }
-      },
-      {
-        "id": "Prompt-impact",
-        "type": "genericNode",
-        "position": { "x": 900, "y": 240 },
-        "data": {
-          "id": "Prompt-impact",
-          "type": "Prompt",
-          "node": {
-            "template": {
-              "_type": "Prompt",
-              "template": {
-                "field_type": "prompt",
-                "required": true,
-                "show": true,
-                "name": "template",
-                "display_name": "Template",
-                "advanced": false,
-                "value": "You are a platform engineering advisor. Analyse the blast radius of a proposed infrastructure change.\n\n## Knowledge Graph Context\n{graph_context}\n\n## Proposed Change\n{proposed_change}\n\nTarget component: {target_node}\n\n---\n\nProvide a structured impact analysis:\n\n## Directly Affected\nList nodes immediately impacted by this change.\n\n## Transitively Affected\nList nodes impacted via dependency chains (DEPENDS_ON, DEPLOYS_TO, etc.).\n\n## Policy Checks\nIdentify any policies (GOVERNED_BY edges) that apply and may need review.\n\n## Risk Assessment\nOverall risk level: CRITICAL / HIGH / MEDIUM / LOW\nBrief justification.\n\n## Recommended Actions\nSpecific steps to safely implement this change (PRs, approvals, runbooks).\n\nBe concise and specific. Reference node IDs from the graph."
-              },
-              "graph_context": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "graph_context",
-                "display_name": "graph_context",
-                "advanced": false,
-                "value": ""
-              },
-              "proposed_change": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "proposed_change",
-                "display_name": "proposed_change",
-                "advanced": false,
-                "value": ""
-              },
-              "target_node": {
-                "field_type": "str",
-                "required": false,
-                "show": true,
-                "name": "target_node",
-                "display_name": "target_node",
-                "advanced": false,
-                "value": ""
-              }
-            },
-            "description": "Impact analysis prompt",
-            "display_name": "Impact Prompt",
-            "documentation": "",
-            "base_classes": ["Prompt"]
-          }
-        }
-      },
-      {
-        "id": "ChatAnthropic-impact",
-        "type": "genericNode",
-        "position": { "x": 1280, "y": 240 },
-        "data": {
-          "id": "ChatAnthropic-impact",
-          "type": "ChatAnthropic",
-          "node": {
-            "template": {
-              "_type": "ChatAnthropic",
-              "anthropic_api_key": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "anthropic_api_key",
-                "display_name": "Anthropic API Key",
-                "advanced": false,
-                "value": "",
-                "password": true
-              },
-              "model_name": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "model_name",
-                "display_name": "Model Name",
-                "advanced": false,
-                "value": "claude-haiku-4-5-20251001"
-              },
-              "temperature": {
-                "field_type": "float",
-                "required": false,
-                "show": true,
-                "name": "temperature",
-                "display_name": "Temperature",
                 "advanced": true,
-                "value": 0.1
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
+                "list": false,
+                "load_from_db": false,
+                "multiline": true,
+                "name": "code",
+                "password": false,
+                "placeholder": "",
+                "required": true,
+                "show": true,
+                "title_case": false,
+                "type": "code",
+                "value": "from lfx.custom.custom_component.component import Component\nfrom lfx.io import MessageTextInput, Output\nfrom lfx.schema.message import Message\nimport json, urllib.request\n\nGRAPH_CONTEXT = \"\"\"# Knowledge Graph (20 nodes, 22 edges)\n\n## Nodes\n- [Team] team:platform-eng \u2014 platform-eng\n- [Service] svc:sample-backend-api \u2014 sample-backend-api (language=python, framework=fastapi, repo=repo:sample-backend-app, owner=team:platform-eng)\n- [Repository] repo:sample-backend-app \u2014 sample-backend-app (type=app, url=http://cnoe.localtest.me:8443/giteaAdmin/sample-backend-app, default_branch=main)\n- [Repository] repo:sample-backend-gitops \u2014 sample-backend-gitops (type=gitops, url=http://cnoe.localtest.me:8443/giteaAdmin/sample-backend-gitops, default_branch=main)\n- [Repository] repo:cim-ai \u2014 cim-ai (type=infra, url=https://github.com/vedantpatil/cim-ai, default_branch=main)\n- [Environment] env:local-kind \u2014 local-kind (tier=local, platform=kind, ingress=cnoe.localtest.me)\n- [Environment] env:staging \u2014 staging (tier=local, namespace=sample-staging, cluster=env:local-kind)\n- [Component] comp:gitea \u2014 gitea (type=registry, subtype=git-server, url=http://cnoe.localtest.me:8443, namespace=gitea)\n- [Component] comp:argocd \u2014 argocd (type=controller, subtype=gitops-operator, url=http://cnoe.localtest.me:8443/argocd, namespace=argocd)\n- [Component] comp:gitea-actions-runner \u2014 gitea-actions-runner (type=ci-runner, namespace=gitea, managed_by=repo:idpbuilder-runner-manifests, argocd_app=gitea-runner)\n- [Component] comp:gitea-oci-registry \u2014 gitea-oci-registry (type=registry, subtype=container-registry, url=cnoe.localtest.me:8443)\n- [Component] comp:ollama \u2014 ollama (type=llm-runtime, url=http://localhost:11434, model=FenkoHQ/Foundation-Sec-8B:latest)\n- [Component] comp:langflow \u2014 langflow (type=agent-runtime, url=http://localhost:7860, version=1.5)\n- [Policy] policy:branch-protection \u2014 branch-protection (enforcer=gitea, scope=repo:sample-backend-app/main, rules=['enable_push: false', 'required_approvals: 1', 'approvals_whitelist: admin-human'])\n- [Policy] policy:hitl-gate \u2014 hitl-gate (enforcer=gitea, scope=repo:sample-backend-app/main, description=Human-in-the-loop: admin-human must approve all PRs before merge)\n- [Policy] policy:gitleaks-scan \u2014 gitleaks-scan (enforcer=gitea-actions, scope=repo:sample-backend-app, trigger=push, description=Secret scanning via gitleaks on every push; must pass before merge)\n- [Policy] policy:protected-workflows \u2014 protected-workflows (enforcer=gitea, scope=repo:sample-backend-app, description=protected_file_patterns blocks .gitea/workflows/* from modification via PR, security_control=R6-supply-chain)\n- [Policy] policy:security-analysis \u2014 security-analysis (enforcer=gitea-actions, scope=repo:sample-backend-app, trigger=pull_request, description=AI security analysis on every PR diff using Foundation-Sec-8B; posts PR comment)\n- [Runbook] runbook:deploy-sample-backend \u2014 deploy-sample-backend (trigger=push to main branch of sample-backend-app, steps_summary=['1. CI checks pass (pytest)', '2. Docker image built and pushed to Gitea OCI registry', '3. GitOps repo deployment.yaml updated with new image SHA', '4. ArgoCD detects change and syncs to staging namespace'])\n- [Runbook] runbook:bootstrap-control-plane \u2014 bootstrap-control-plane (trigger=manual / fresh environment setup, steps_summary=['1. idpbuilder create --use-path-routing -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml', '2. Kind cluster + Gitea + ArgoCD provisioned', '3. Gitea Actions runner deployed via ArgoCD (gitea-runner app)', '4. Sample app and gitops repos created on Gitea'])\n\n## Relationships\n- team:platform-eng --[OWNS]--> svc:sample-backend-api\n- team:platform-eng --[OWNS]--> repo:sample-backend-app\n- team:platform-eng --[OWNS]--> repo:sample-backend-gitops\n- team:platform-eng --[OWNS]--> repo:cim-ai\n- svc:sample-backend-api --[DEPENDS_ON]--> comp:gitea-oci-registry\n- repo:sample-backend-app --[DEPLOYS_TO]--> env:staging\n- repo:sample-backend-gitops --[DEPLOYS_TO]--> env:staging\n- repo:cim-ai --[PROVISIONS]--> env:local-kind\n- repo:cim-ai --[PROVISIONS]--> comp:gitea\n- repo:cim-ai --[PROVISIONS]--> comp:argocd\n- repo:cim-ai --[PROVISIONS]--> comp:gitea-actions-runner\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:branch-protection\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:hitl-gate\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:gitleaks-scan\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:protected-workflows\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:security-analysis\n- env:staging --[GOVERNED_BY]--> policy:hitl-gate\n- svc:sample-backend-api --[DOCUMENTED_BY]--> runbook:deploy-sample-backend\n- env:local-kind --[DOCUMENTED_BY]--> runbook:bootstrap-control-plane\n- env:staging --[DEPENDS_ON]--> env:local-kind\n- comp:gitea-actions-runner --[DEPENDS_ON]--> comp:gitea\n- comp:argocd --[DEPENDS_ON]--> comp:gitea\"\"\"\n\nclass ChangeImpactComponent(Component):\n    display_name = \"Change Impact Analyzer\"\n    description = \"Analyses blast radius of a proposed infrastructure change\"\n\n    inputs = [\n        MessageTextInput(name=\"diff\", display_name=\"Proposed Change\", info=\"Describe the change\"),\n        MessageTextInput(name=\"target_node\", display_name=\"Target Node\", info=\"Component being changed\", value=\"\"),\n    ]\n    outputs = [Output(display_name=\"Impact Analysis\", name=\"impact\", method=\"analyse\")]\n\n    def analyse(self) -> Message:\n        change = self.diff if isinstance(self.diff, str) else str(self.diff)\n        target = self.target_node if isinstance(self.target_node, str) else str(self.target_node)\n        prompt = f\"You are a platform engineering advisor. Analyse the blast radius of this change.\\n\\n## Knowledge Graph\\n{GRAPH_CONTEXT}\\n\\n## Proposed Change\\n{change}\\n\\n## Target\\n{target or 'Not specified'}\\n\\nRespond with:\\n## Risk Level\\n## Affected Components\\n## Blast Radius\\n## Mitigation Steps\"\n        payload = json.dumps({\"model\":\"qwen2.5-coder:7b\",\"messages\":[{\"role\":\"user\",\"content\":prompt}],\"stream\":False}).encode()\n        req = urllib.request.Request(\"http://host.docker.internal:11434/api/chat\",data=payload,headers={\"Content-Type\":\"application/json\"},method=\"POST\")\n        try:\n            with urllib.request.urlopen(req, timeout=180) as resp:\n                return Message(text=json.loads(resp.read()).get(\"message\",{}).get(\"content\",\"No response.\"))\n        except Exception as e:\n            return Message(text=f\"Error: {e}\")\n"
+              },
+              "diff": {
+                "_input_type": "MessageTextInput",
+                "advanced": false,
+                "display_name": "Git Diff",
+                "dynamic": false,
+                "info": "The git diff to analyse",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "name": "diff",
+                "override_skip": false,
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": true,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "track_in_telemetry": false,
+                "type": "str",
+                "value": ""
               }
             },
-            "description": "Claude AI for impact analysis",
-            "display_name": "Claude AI",
-            "documentation": "",
-            "base_classes": ["LanguageModel", "Message", "Text"]
-          }
+            "tool_mode": false
+          },
+          "showNode": true
         }
       },
       {
-        "id": "TextOutput-impact",
+        "id": "TextOutput-1",
         "type": "genericNode",
-        "position": { "x": 1620, "y": 240 },
+        "position": {
+          "x": 1050,
+          "y": 300
+        },
         "data": {
-          "id": "TextOutput-impact",
+          "id": "TextOutput-1",
           "type": "TextOutput",
           "node": {
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Sends text output via API.",
+            "display_name": "Text Output",
+            "documentation": "https://docs.langflow.org/text-input-and-output",
+            "edited": false,
+            "field_order": [
+              "input_value"
+            ],
+            "frozen": false,
+            "icon": "type",
+            "legacy": false,
+            "metadata": {
+              "code_hash": "6aba888f4632",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 1
+              },
+              "module": "lfx.components.input_output.text_output.TextOutputComponent"
+            },
+            "minimized": false,
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Output Text",
+                "group_outputs": false,
+                "method": "text_response",
+                "name": "text",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
             "template": {
-              "_type": "TextOutput",
-              "input_value": {
-                "field_type": "str",
+              "_type": "Component",
+              "code": {
+                "advanced": true,
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
+                "list": false,
+                "load_from_db": false,
+                "multiline": true,
+                "name": "code",
+                "password": false,
+                "placeholder": "",
                 "required": true,
                 "show": true,
-                "name": "input_value",
-                "display_name": "Impact Analysis",
+                "title_case": false,
+                "type": "code",
+                "value": "from lfx.base.io.text import TextComponent\nfrom lfx.io import MultilineInput, Output\nfrom lfx.schema.message import Message\n\n\nclass TextOutputComponent(TextComponent):\n    display_name = \"Text Output\"\n    description = \"Sends text output via API.\"\n    documentation: str = \"https://docs.langflow.org/text-input-and-output\"\n    icon = \"type\"\n    name = \"TextOutput\"\n\n    inputs = [\n        MultilineInput(\n            name=\"input_value\",\n            display_name=\"Inputs\",\n            info=\"Text to be passed as output.\",\n        ),\n    ]\n    outputs = [\n        Output(display_name=\"Output Text\", name=\"text\", method=\"text_response\"),\n    ]\n\n    def text_response(self) -> Message:\n        message = Message(\n            text=self.input_value,\n        )\n        self.status = self.input_value\n        return message\n"
+              },
+              "input_value": {
+                "_input_type": "MultilineInput",
                 "advanced": false,
+                "ai_enabled": false,
+                "copy_field": false,
+                "display_name": "Inputs",
+                "dynamic": false,
+                "info": "Text to be passed as output.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "multiline": true,
+                "name": "input_value",
+                "override_skip": false,
+                "password": false,
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "track_in_telemetry": false,
+                "type": "str",
                 "value": ""
               }
             },
-            "description": "Blast radius and impact analysis result",
-            "display_name": "Impact Analysis Output",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
+            "tool_mode": false
+          },
+          "showNode": true
         }
       }
     ],
     "edges": [
       {
-        "id": "graph-path-to-impact",
-        "source": "TextInput-graph-path",
-        "target": "CustomComponent-impact",
-        "sourceHandle": "TextInput-graph-path-output-Message",
-        "targetHandle": "CustomComponent-impact-input-graph_path",
+        "id": "edge-TextInput-1-text-CustomComponent-1-diff",
+        "source": "TextInput-1",
+        "sourceHandle": "TextInput-1|text|TextInput-1",
+        "target": "CustomComponent-1",
+        "targetHandle": "CustomComponent-1|diff|CustomComponent-1",
         "data": {
-          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-graph-path", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "graph_path", "id": "CustomComponent-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+          "sourceHandle": {
+            "dataType": "TextInput",
+            "id": "TextInput-1",
+            "name": "text",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "diff",
+            "id": "CustomComponent-1",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
         }
       },
       {
-        "id": "target-to-impact",
-        "source": "TextInput-target",
-        "target": "CustomComponent-impact",
-        "sourceHandle": "TextInput-target-output-Message",
-        "targetHandle": "CustomComponent-impact-input-target_node",
+        "id": "edge-CustomComponent-1-analysis-TextOutput-1-input_value",
+        "source": "CustomComponent-1",
+        "sourceHandle": "CustomComponent-1|analysis|CustomComponent-1",
+        "target": "TextOutput-1",
+        "targetHandle": "TextOutput-1|input_value|TextOutput-1",
         "data": {
-          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-target", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "target_node", "id": "CustomComponent-impact", "inputTypes": ["Message", "Text"], "type": "str" }
-        }
-      },
-      {
-        "id": "impact-to-prompt",
-        "source": "CustomComponent-impact",
-        "target": "Prompt-impact",
-        "sourceHandle": "CustomComponent-impact-output-Message",
-        "targetHandle": "Prompt-impact-input-graph_context",
-        "data": {
-          "sourceHandle": { "dataType": "CustomComponent", "id": "CustomComponent-impact", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "graph_context", "id": "Prompt-impact", "inputTypes": ["Message", "Text"], "type": "str" }
-        }
-      },
-      {
-        "id": "change-to-prompt",
-        "source": "TextInput-change",
-        "target": "Prompt-impact",
-        "sourceHandle": "TextInput-change-output-Message",
-        "targetHandle": "Prompt-impact-input-proposed_change",
-        "data": {
-          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-change", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "proposed_change", "id": "Prompt-impact", "inputTypes": ["Message", "Text"], "type": "str" }
-        }
-      },
-      {
-        "id": "target-to-prompt",
-        "source": "TextInput-target",
-        "target": "Prompt-impact",
-        "sourceHandle": "TextInput-target-output-Message",
-        "targetHandle": "Prompt-impact-input-target_node",
-        "data": {
-          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-target", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "target_node", "id": "Prompt-impact", "inputTypes": ["Message", "Text"], "type": "str" }
-        }
-      },
-      {
-        "id": "prompt-to-llm",
-        "source": "Prompt-impact",
-        "target": "ChatAnthropic-impact",
-        "sourceHandle": "Prompt-impact-output-Prompt",
-        "targetHandle": "ChatAnthropic-impact-input-input_value",
-        "data": {
-          "sourceHandle": { "dataType": "Prompt", "id": "Prompt-impact", "name": "prompt", "output_types": ["Prompt"] },
-          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-impact", "inputTypes": ["Prompt"], "type": "str" }
-        }
-      },
-      {
-        "id": "llm-to-output",
-        "source": "ChatAnthropic-impact",
-        "target": "TextOutput-impact",
-        "sourceHandle": "ChatAnthropic-impact-output-Message",
-        "targetHandle": "TextOutput-impact-input-input_value",
-        "data": {
-          "sourceHandle": { "dataType": "ChatAnthropic", "id": "ChatAnthropic-impact", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "input_value", "id": "TextOutput-impact", "inputTypes": ["Message", "Text"], "type": "str" }
+          "sourceHandle": {
+            "dataType": "CustomComponent",
+            "id": "CustomComponent-1",
+            "name": "analysis",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "TextOutput-1",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
         }
       }
     ],
-    "viewport": { "x": 0, "y": 0, "zoom": 0.65 }
-  }
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    }
+  },
+  "is_component": false,
+  "updated_at": "2026-05-10T16:11:05+00:00",
+  "webhook": false,
+  "endpoint_name": null,
+  "tags": null,
+  "locked": false,
+  "mcp_enabled": false,
+  "action_name": null,
+  "action_description": null,
+  "access_type": "PRIVATE",
+  "user_id": "b52f5852-c9ca-4067-b2a2-509d0d4a3916",
+  "folder_id": "c3941cb2-388b-41e4-95a6-1519162f392e"
 }

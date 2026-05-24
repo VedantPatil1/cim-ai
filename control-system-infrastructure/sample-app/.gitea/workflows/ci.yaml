@@ -50,7 +50,7 @@ jobs:
       - name: Verify Docker + configure registry
         run: |
           docker info --format '{{.ServerVersion}}'
-          echo "10.96.122.41 cnoe.localtest.me" >> /etc/hosts
+          echo "10.96.161.49 cnoe.localtest.me" >> /etc/hosts
 
       - name: Build image
         run: |

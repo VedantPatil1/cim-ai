@@ -1,273 +1,440 @@
 {
   "name": "Knowledge Graph Query",
-  "description": "Query the infrastructure knowledge graph. Ask natural-language questions about services, environments, policies, and runbooks. The graph is loaded from knowledge-graph/graph.json.",
-  "is_component": false,
+  "description": "Calls Ollama to perform security analysis on a git diff",
+  "icon": null,
+  "icon_bg_color": null,
+  "gradient": null,
   "data": {
     "nodes": [
       {
-        "id": "TextInput-question",
+        "id": "TextInput-1",
         "type": "genericNode",
-        "position": { "x": 80, "y": 200 },
+        "position": {
+          "x": 100,
+          "y": 300
+        },
         "data": {
-          "id": "TextInput-question",
+          "id": "TextInput-1",
           "type": "TextInput",
           "node": {
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Get user text inputs.",
+            "display_name": "Question",
+            "documentation": "https://docs.langflow.org/text-input-and-output",
+            "edited": false,
+            "field_order": [
+              "input_value",
+              "use_global_variable"
+            ],
+            "frozen": false,
+            "icon": "type",
+            "legacy": false,
+            "metadata": {
+              "code_hash": "518f16485886",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 1
+              },
+              "module": "lfx.components.input_output.text.TextInputComponent"
+            },
+            "minimized": false,
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Output Text",
+                "group_outputs": false,
+                "method": "text_response",
+                "name": "text",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
             "template": {
-              "_type": "TextInput",
-              "input_value": {
-                "field_type": "str",
+              "_type": "Component",
+              "code": {
+                "advanced": true,
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
+                "list": false,
+                "load_from_db": false,
+                "multiline": true,
+                "name": "code",
+                "password": false,
+                "placeholder": "",
                 "required": true,
-                "placeholder": "e.g. Who owns the sample-backend-api? What policies govern the staging environment?",
-                "list": false,
                 "show": true,
-                "name": "input_value",
-                "display_name": "Question",
-                "advanced": false,
-                "value": "",
-                "info": "Natural language question about the infrastructure"
-              }
-            },
-            "description": "Your question about the infrastructure",
-            "display_name": "Question Input",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
-        }
-      },
-      {
-        "id": "TextInput-graph-path",
-        "type": "genericNode",
-        "position": { "x": 80, "y": 420 },
-        "data": {
-          "id": "TextInput-graph-path",
-          "type": "TextInput",
-          "node": {
-            "template": {
-              "_type": "TextInput",
+                "title_case": false,
+                "type": "code",
+                "value": "from typing import Any\n\nfrom lfx.base.io.text import TextComponent\nfrom lfx.io import BoolInput, MultilineInput, Output\nfrom lfx.schema.message import Message\n\n\nclass TextInputComponent(TextComponent):\n    display_name = \"Text Input\"\n    description = \"Get user text inputs.\"\n    documentation: str = \"https://docs.langflow.org/text-input-and-output\"\n    icon = \"type\"\n    name = \"TextInput\"\n\n    inputs = [\n        MultilineInput(\n            name=\"input_value\",\n            display_name=\"Text\",\n            info=\"Text to be passed as input.\",\n        ),\n        BoolInput(\n            name=\"use_global_variable\",\n            display_name=\"Use Global Variable\",\n            info=\"Enable to select from global variables (shows globe icon). Disables multiline editing.\",\n            value=False,\n            advanced=True,\n            real_time_refresh=True,\n        ),\n    ]\n    outputs = [\n        Output(display_name=\"Output Text\", name=\"text\", method=\"text_response\"),\n    ]\n\n    def update_build_config(self, build_config: dict, field_value: Any, field_name: str | None = None) -> dict:\n        if field_name == \"use_global_variable\":\n            if field_value:\n                build_config[\"input_value\"][\"multiline\"] = False\n                build_config[\"input_value\"][\"password\"] = True\n            else:\n                build_config[\"input_value\"][\"multiline\"] = True\n                build_config[\"input_value\"][\"password\"] = False\n        return build_config\n\n    def text_response(self) -> Message:\n        return Message(\n            text=self.input_value,\n        )\n"
+              },
               "input_value": {
-                "field_type": "str",
-                "required": false,
-                "placeholder": "/path/to/knowledge-graph/graph.json",
-                "list": false,
-                "show": true,
-                "name": "input_value",
-                "display_name": "Graph JSON Path",
+                "_input_type": "MultilineInput",
                 "advanced": false,
-                "value": "knowledge-graph/graph.json",
-                "info": "Path to graph.json relative to repo root, or absolute path"
+                "ai_enabled": false,
+                "copy_field": false,
+                "display_name": "Question",
+                "dynamic": false,
+                "info": "Text to be passed as input.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "multiline": true,
+                "name": "input_value",
+                "override_skip": false,
+                "password": false,
+                "placeholder": "Enter question...",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "track_in_telemetry": false,
+                "type": "str",
+                "value": ""
+              },
+              "use_global_variable": {
+                "_input_type": "BoolInput",
+                "advanced": true,
+                "display_name": "Use Global Variable",
+                "dynamic": false,
+                "info": "Enable to select from global variables (shows globe icon). Disables multiline editing.",
+                "list": false,
+                "list_add_label": "Add More",
+                "name": "use_global_variable",
+                "override_skip": false,
+                "placeholder": "",
+                "real_time_refresh": true,
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "value": false
               }
             },
-            "description": "Path to the knowledge graph JSON file",
-            "display_name": "Graph Path",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
+            "tool_mode": false
+          },
+          "showNode": true
         }
       },
       {
-        "id": "CustomComponent-loader",
+        "id": "CustomComponent-1",
         "type": "genericNode",
-        "position": { "x": 480, "y": 420 },
+        "position": {
+          "x": 550,
+          "y": 250
+        },
         "data": {
-          "id": "CustomComponent-loader",
+          "id": "CustomComponent-1",
           "type": "CustomComponent",
           "node": {
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Calls Ollama to perform security analysis on a git diff",
+            "display_name": "Knowledge Graph Query",
+            "documentation": "https://docs.langflow.org/components-custom-components",
+            "edited": true,
+            "field_order": [
+              "diff"
+            ],
+            "frozen": false,
+            "icon": "code",
+            "legacy": false,
+            "metadata": {
+              "code_hash": "d50a68a6fa57",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 1
+              },
+              "module": "lfx.components.custom_component.custom_component.CustomComponent"
+            },
+            "minimized": false,
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Analysis",
+                "group_outputs": false,
+                "method": "analyse",
+                "name": "analysis",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
             "template": {
-              "_type": "CustomComponent",
+              "_type": "Component",
               "code": {
-                "field_type": "code",
-                "required": true,
-                "show": true,
+                "advanced": true,
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
+                "list": false,
+                "load_from_db": false,
+                "multiline": true,
                 "name": "code",
-                "display_name": "Code",
-                "advanced": false,
-                "value": "import json\nfrom pathlib import Path\nfrom langflow.custom import CustomComponent\nfrom langflow.schema import Record\n\nclass GraphLoaderComponent(CustomComponent):\n    display_name = \"Graph Loader\"\n    description = \"Loads knowledge-graph/graph.json and returns it as formatted text\"\n\n    def build_config(self):\n        return {\n            \"graph_path\": {\n                \"display_name\": \"Graph JSON Path\",\n                \"field_type\": \"str\",\n                \"required\": False,\n                \"value\": \"knowledge-graph/graph.json\",\n            }\n        }\n\n    def build(self, graph_path: str = \"knowledge-graph/graph.json\") -> str:\n        path = Path(graph_path)\n        if not path.is_absolute():\n            # Try relative to CWD\n            path = Path.cwd() / graph_path\n        if not path.exists():\n            return f\"ERROR: graph.json not found at {path}\"\n\n        graph = json.loads(path.read_text())\n        lines = []\n        lines.append(f\"# Knowledge Graph ({len(graph['nodes'])} nodes, {len(graph['edges'])} edges)\")\n        lines.append(\"\")\n        lines.append(\"## Nodes\")\n        for n in graph[\"nodes\"]:\n            attrs = \", \".join(f\"{k}={v}\" for k, v in n[\"attrs\"].items() if k != \"name\")\n            name = n[\"attrs\"].get(\"name\", n[\"id\"])\n            lines.append(f\"- [{n['type']}] {n['id']} — {name}\" + (f\" ({attrs})\" if attrs else \"\"))\n        lines.append(\"\")\n        lines.append(\"## Relationships\")\n        for e in graph[\"edges\"]:\n            lines.append(f\"- {e['from']} --[{e['rel']}]--> {e['to']}\")\n        return \"\\n\".join(lines)\n"
-              }
-            },
-            "description": "Loads and formats graph.json as text for LLM context",
-            "display_name": "Graph Loader",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
-        }
-      },
-      {
-        "id": "Prompt-kg-query",
-        "type": "genericNode",
-        "position": { "x": 860, "y": 280 },
-        "data": {
-          "id": "Prompt-kg-query",
-          "type": "Prompt",
-          "node": {
-            "template": {
-              "_type": "Prompt",
-              "template": {
-                "field_type": "prompt",
+                "password": false,
+                "placeholder": "",
                 "required": true,
                 "show": true,
-                "name": "template",
-                "display_name": "Template",
-                "advanced": false,
-                "value": "You are an infrastructure knowledge assistant. You have access to a structured knowledge graph of the system's services, components, repositories, environments, and policies.\n\nAnswer the user's question using ONLY the information in the knowledge graph below. If the answer is not in the graph, say so clearly.\n\n{graph_context}\n\n---\n\nUser question: {question}\n\nProvide a direct, factual answer. Cite specific node IDs and relationships from the graph where relevant."
+                "title_case": false,
+                "type": "code",
+                "value": "from lfx.custom.custom_component.component import Component\nfrom lfx.io import MessageTextInput, Output\nfrom lfx.schema.message import Message\nimport json, urllib.request\n\nGRAPH_CONTEXT = \"\"\"# Knowledge Graph (20 nodes, 22 edges)\n\n## Nodes\n- [Team] team:platform-eng \u2014 platform-eng\n- [Service] svc:sample-backend-api \u2014 sample-backend-api (language=python, framework=fastapi, repo=repo:sample-backend-app, owner=team:platform-eng)\n- [Repository] repo:sample-backend-app \u2014 sample-backend-app (type=app, url=http://cnoe.localtest.me:8443/giteaAdmin/sample-backend-app, default_branch=main)\n- [Repository] repo:sample-backend-gitops \u2014 sample-backend-gitops (type=gitops, url=http://cnoe.localtest.me:8443/giteaAdmin/sample-backend-gitops, default_branch=main)\n- [Repository] repo:cim-ai \u2014 cim-ai (type=infra, url=https://github.com/vedantpatil/cim-ai, default_branch=main)\n- [Environment] env:local-kind \u2014 local-kind (tier=local, platform=kind, ingress=cnoe.localtest.me)\n- [Environment] env:staging \u2014 staging (tier=local, namespace=sample-staging, cluster=env:local-kind)\n- [Component] comp:gitea \u2014 gitea (type=registry, subtype=git-server, url=http://cnoe.localtest.me:8443, namespace=gitea)\n- [Component] comp:argocd \u2014 argocd (type=controller, subtype=gitops-operator, url=http://cnoe.localtest.me:8443/argocd, namespace=argocd)\n- [Component] comp:gitea-actions-runner \u2014 gitea-actions-runner (type=ci-runner, namespace=gitea, managed_by=repo:idpbuilder-runner-manifests, argocd_app=gitea-runner)\n- [Component] comp:gitea-oci-registry \u2014 gitea-oci-registry (type=registry, subtype=container-registry, url=cnoe.localtest.me:8443)\n- [Component] comp:ollama \u2014 ollama (type=llm-runtime, url=http://localhost:11434, model=FenkoHQ/Foundation-Sec-8B:latest)\n- [Component] comp:langflow \u2014 langflow (type=agent-runtime, url=http://localhost:7860, version=1.5)\n- [Policy] policy:branch-protection \u2014 branch-protection (enforcer=gitea, scope=repo:sample-backend-app/main, rules=['enable_push: false', 'required_approvals: 1', 'approvals_whitelist: admin-human'])\n- [Policy] policy:hitl-gate \u2014 hitl-gate (enforcer=gitea, scope=repo:sample-backend-app/main, description=Human-in-the-loop: admin-human must approve all PRs before merge)\n- [Policy] policy:gitleaks-scan \u2014 gitleaks-scan (enforcer=gitea-actions, scope=repo:sample-backend-app, trigger=push, description=Secret scanning via gitleaks on every push; must pass before merge)\n- [Policy] policy:protected-workflows \u2014 protected-workflows (enforcer=gitea, scope=repo:sample-backend-app, description=protected_file_patterns blocks .gitea/workflows/* from modification via PR, security_control=R6-supply-chain)\n- [Policy] policy:security-analysis \u2014 security-analysis (enforcer=gitea-actions, scope=repo:sample-backend-app, trigger=pull_request, description=AI security analysis on every PR diff using Foundation-Sec-8B; posts PR comment)\n- [Runbook] runbook:deploy-sample-backend \u2014 deploy-sample-backend (trigger=push to main branch of sample-backend-app, steps_summary=['1. CI checks pass (pytest)', '2. Docker image built and pushed to Gitea OCI registry', '3. GitOps repo deployment.yaml updated with new image SHA', '4. ArgoCD detects change and syncs to staging namespace'])\n- [Runbook] runbook:bootstrap-control-plane \u2014 bootstrap-control-plane (trigger=manual / fresh environment setup, steps_summary=['1. idpbuilder create --use-path-routing -c gitea:./control-system-infrastructure/cnoe-stack/gitea-config/override.yaml', '2. Kind cluster + Gitea + ArgoCD provisioned', '3. Gitea Actions runner deployed via ArgoCD (gitea-runner app)', '4. Sample app and gitops repos created on Gitea'])\n\n## Relationships\n- team:platform-eng --[OWNS]--> svc:sample-backend-api\n- team:platform-eng --[OWNS]--> repo:sample-backend-app\n- team:platform-eng --[OWNS]--> repo:sample-backend-gitops\n- team:platform-eng --[OWNS]--> repo:cim-ai\n- svc:sample-backend-api --[DEPENDS_ON]--> comp:gitea-oci-registry\n- repo:sample-backend-app --[DEPLOYS_TO]--> env:staging\n- repo:sample-backend-gitops --[DEPLOYS_TO]--> env:staging\n- repo:cim-ai --[PROVISIONS]--> env:local-kind\n- repo:cim-ai --[PROVISIONS]--> comp:gitea\n- repo:cim-ai --[PROVISIONS]--> comp:argocd\n- repo:cim-ai --[PROVISIONS]--> comp:gitea-actions-runner\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:branch-protection\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:hitl-gate\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:gitleaks-scan\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:protected-workflows\n- svc:sample-backend-api --[GOVERNED_BY]--> policy:security-analysis\n- env:staging --[GOVERNED_BY]--> policy:hitl-gate\n- svc:sample-backend-api --[DOCUMENTED_BY]--> runbook:deploy-sample-backend\n- env:local-kind --[DOCUMENTED_BY]--> runbook:bootstrap-control-plane\n- env:staging --[DEPENDS_ON]--> env:local-kind\n- comp:gitea-actions-runner --[DEPENDS_ON]--> comp:gitea\n- comp:argocd --[DEPENDS_ON]--> comp:gitea\"\"\"\n\nclass KGQueryComponent(Component):\n    display_name = \"Knowledge Graph Query\"\n    description = \"Queries the infrastructure knowledge graph\"\n\n    inputs = [MessageTextInput(name=\"diff\", display_name=\"Question\", info=\"Natural language question\")]\n    outputs = [Output(display_name=\"Answer\", name=\"answer\", method=\"analyse\")]\n\n    def analyse(self) -> Message:\n        q = self.diff if isinstance(self.diff, str) else str(self.diff)\n        prompt = f\"You are an infrastructure knowledge assistant.\\n\\n{GRAPH_CONTEXT}\\n\\nQuestion: {q}\\n\\nAnswer clearly using only information from the graph.\"\n        payload = json.dumps({\"model\":\"qwen2.5-coder:7b\",\"messages\":[{\"role\":\"user\",\"content\":prompt}],\"stream\":False}).encode()\n        req = urllib.request.Request(\"http://host.docker.internal:11434/api/chat\",data=payload,headers={\"Content-Type\":\"application/json\"},method=\"POST\")\n        try:\n            with urllib.request.urlopen(req, timeout=120) as resp:\n                return Message(text=json.loads(resp.read()).get(\"message\",{}).get(\"content\",\"No response.\"))\n        except Exception as e:\n            return Message(text=f\"Error: {e}\")\n"
               },
-              "graph_context": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "graph_context",
-                "display_name": "graph_context",
+              "diff": {
+                "_input_type": "MessageTextInput",
                 "advanced": false,
-                "value": ""
-              },
-              "question": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "question",
-                "display_name": "question",
-                "advanced": false,
-                "value": ""
-              }
-            },
-            "description": "KG query prompt — injects graph context + user question",
-            "display_name": "KG Query Prompt",
-            "documentation": "",
-            "base_classes": ["Prompt"]
-          }
-        }
-      },
-      {
-        "id": "ChatAnthropic-kg",
-        "type": "genericNode",
-        "position": { "x": 1200, "y": 280 },
-        "data": {
-          "id": "ChatAnthropic-kg",
-          "type": "ChatAnthropic",
-          "node": {
-            "template": {
-              "_type": "ChatAnthropic",
-              "anthropic_api_key": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "anthropic_api_key",
-                "display_name": "Anthropic API Key",
-                "advanced": false,
-                "value": "",
-                "password": true
-              },
-              "model_name": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "model_name",
-                "display_name": "Model Name",
-                "advanced": false,
-                "value": "claude-haiku-4-5-20251001",
-                "options": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]
-              },
-              "temperature": {
-                "field_type": "float",
+                "display_name": "Git Diff",
+                "dynamic": false,
+                "info": "The git diff to analyse",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "name": "diff",
+                "override_skip": false,
+                "placeholder": "",
                 "required": false,
                 "show": true,
-                "name": "temperature",
-                "display_name": "Temperature",
-                "advanced": true,
-                "value": 0.0
-              }
-            },
-            "description": "Claude answers the KG query",
-            "display_name": "Claude AI",
-            "documentation": "",
-            "base_classes": ["LanguageModel", "Message", "Text"]
-          }
-        }
-      },
-      {
-        "id": "TextOutput-answer",
-        "type": "genericNode",
-        "position": { "x": 1540, "y": 280 },
-        "data": {
-          "id": "TextOutput-answer",
-          "type": "TextOutput",
-          "node": {
-            "template": {
-              "_type": "TextOutput",
-              "input_value": {
-                "field_type": "str",
-                "required": true,
-                "show": true,
-                "name": "input_value",
-                "display_name": "Answer",
-                "advanced": false,
+                "title_case": false,
+                "tool_mode": true,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "track_in_telemetry": false,
+                "type": "str",
                 "value": ""
               }
             },
-            "description": "Answer to the infrastructure question",
-            "display_name": "Answer Output",
-            "documentation": "",
-            "base_classes": ["Message", "Text"]
-          }
+            "tool_mode": false
+          },
+          "showNode": true
+        }
+      },
+      {
+        "id": "TextOutput-1",
+        "type": "genericNode",
+        "position": {
+          "x": 1050,
+          "y": 300
+        },
+        "data": {
+          "id": "TextOutput-1",
+          "type": "TextOutput",
+          "node": {
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Sends text output via API.",
+            "display_name": "Text Output",
+            "documentation": "https://docs.langflow.org/text-input-and-output",
+            "edited": false,
+            "field_order": [
+              "input_value"
+            ],
+            "frozen": false,
+            "icon": "type",
+            "legacy": false,
+            "metadata": {
+              "code_hash": "6aba888f4632",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 1
+              },
+              "module": "lfx.components.input_output.text_output.TextOutputComponent"
+            },
+            "minimized": false,
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Output Text",
+                "group_outputs": false,
+                "method": "text_response",
+                "name": "text",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
+            "template": {
+              "_type": "Component",
+              "code": {
+                "advanced": true,
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
+                "list": false,
+                "load_from_db": false,
+                "multiline": true,
+                "name": "code",
+                "password": false,
+                "placeholder": "",
+                "required": true,
+                "show": true,
+                "title_case": false,
+                "type": "code",
+                "value": "from lfx.base.io.text import TextComponent\nfrom lfx.io import MultilineInput, Output\nfrom lfx.schema.message import Message\n\n\nclass TextOutputComponent(TextComponent):\n    display_name = \"Text Output\"\n    description = \"Sends text output via API.\"\n    documentation: str = \"https://docs.langflow.org/text-input-and-output\"\n    icon = \"type\"\n    name = \"TextOutput\"\n\n    inputs = [\n        MultilineInput(\n            name=\"input_value\",\n            display_name=\"Inputs\",\n            info=\"Text to be passed as output.\",\n        ),\n    ]\n    outputs = [\n        Output(display_name=\"Output Text\", name=\"text\", method=\"text_response\"),\n    ]\n\n    def text_response(self) -> Message:\n        message = Message(\n            text=self.input_value,\n        )\n        self.status = self.input_value\n        return message\n"
+              },
+              "input_value": {
+                "_input_type": "MultilineInput",
+                "advanced": false,
+                "ai_enabled": false,
+                "copy_field": false,
+                "display_name": "Inputs",
+                "dynamic": false,
+                "info": "Text to be passed as output.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "multiline": true,
+                "name": "input_value",
+                "override_skip": false,
+                "password": false,
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "track_in_telemetry": false,
+                "type": "str",
+                "value": ""
+              }
+            },
+            "tool_mode": false
+          },
+          "showNode": true
         }
       }
     ],
     "edges": [
       {
-        "id": "graph-path-to-loader",
-        "source": "TextInput-graph-path",
-        "target": "CustomComponent-loader",
-        "sourceHandle": "TextInput-graph-path-output-Message",
-        "targetHandle": "CustomComponent-loader-input-graph_path",
+        "id": "edge-TextInput-1-text-CustomComponent-1-diff",
+        "source": "TextInput-1",
+        "sourceHandle": "TextInput-1|text|TextInput-1",
+        "target": "CustomComponent-1",
+        "targetHandle": "CustomComponent-1|diff|CustomComponent-1",
         "data": {
-          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-graph-path", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "graph_path", "id": "CustomComponent-loader", "inputTypes": ["Message", "Text"], "type": "str" }
+          "sourceHandle": {
+            "dataType": "TextInput",
+            "id": "TextInput-1",
+            "name": "text",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "diff",
+            "id": "CustomComponent-1",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
         }
       },
       {
-        "id": "loader-to-prompt",
-        "source": "CustomComponent-loader",
-        "target": "Prompt-kg-query",
-        "sourceHandle": "CustomComponent-loader-output-Message",
-        "targetHandle": "Prompt-kg-query-input-graph_context",
+        "id": "edge-CustomComponent-1-analysis-TextOutput-1-input_value",
+        "source": "CustomComponent-1",
+        "sourceHandle": "CustomComponent-1|analysis|CustomComponent-1",
+        "target": "TextOutput-1",
+        "targetHandle": "TextOutput-1|input_value|TextOutput-1",
         "data": {
-          "sourceHandle": { "dataType": "CustomComponent", "id": "CustomComponent-loader", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "graph_context", "id": "Prompt-kg-query", "inputTypes": ["Message", "Text"], "type": "str" }
-        }
-      },
-      {
-        "id": "question-to-prompt",
-        "source": "TextInput-question",
-        "target": "Prompt-kg-query",
-        "sourceHandle": "TextInput-question-output-Message",
-        "targetHandle": "Prompt-kg-query-input-question",
-        "data": {
-          "sourceHandle": { "dataType": "TextInput", "id": "TextInput-question", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "question", "id": "Prompt-kg-query", "inputTypes": ["Message", "Text"], "type": "str" }
-        }
-      },
-      {
-        "id": "prompt-to-llm",
-        "source": "Prompt-kg-query",
-        "target": "ChatAnthropic-kg",
-        "sourceHandle": "Prompt-kg-query-output-Prompt",
-        "targetHandle": "ChatAnthropic-kg-input-input_value",
-        "data": {
-          "sourceHandle": { "dataType": "Prompt", "id": "Prompt-kg-query", "name": "prompt", "output_types": ["Prompt"] },
-          "targetHandle": { "fieldName": "input_value", "id": "ChatAnthropic-kg", "inputTypes": ["Prompt"], "type": "str" }
-        }
-      },
-      {
-        "id": "llm-to-output",
-        "source": "ChatAnthropic-kg",
-        "target": "TextOutput-answer",
-        "sourceHandle": "ChatAnthropic-kg-output-Message",
-        "targetHandle": "TextOutput-answer-input-input_value",
-        "data": {
-          "sourceHandle": { "dataType": "ChatAnthropic", "id": "ChatAnthropic-kg", "name": "message", "output_types": ["Message", "Text"] },
-          "targetHandle": { "fieldName": "input_value", "id": "TextOutput-answer", "inputTypes": ["Message", "Text"], "type": "str" }
+          "sourceHandle": {
+            "dataType": "CustomComponent",
+            "id": "CustomComponent-1",
+            "name": "analysis",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "TextOutput-1",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
         }
       }
     ],
-    "viewport": { "x": 0, "y": 0, "zoom": 0.75 }
-  }
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    }
+  },
+  "is_component": false,
+  "updated_at": "2026-05-10T16:11:05+00:00",
+  "webhook": false,
+  "endpoint_name": null,
+  "tags": null,
+  "locked": false,
+  "mcp_enabled": false,
+  "action_name": null,
+  "action_description": null,
+  "access_type": "PRIVATE",
+  "user_id": "b52f5852-c9ca-4067-b2a2-509d0d4a3916",
+  "folder_id": "c3941cb2-388b-41e4-95a6-1519162f392e"
 }

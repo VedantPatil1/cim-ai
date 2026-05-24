@@ -61,7 +61,7 @@ The management plane that enables GitOps. Bootstrapped via `idpbuilder` on a loc
 | `sandbox-environments` | Ephemeral PR environments | **Live** |
 
 ### Layer 2 — Target Infrastructure
-The application plane managed by GitOps. Currently validated locally; AWS path defined.
+The application plane managed by GitOps. Validated locally; AWS infrastructure provisioned manually.
 
 | Component | Role | Status |
 |---|---|---|
@@ -69,6 +69,17 @@ The application plane managed by GitOps. Currently validated locally; AWS path d
 | Gitea OCI / AWS ECR | Container image registry | Local: **Live** · AWS: manual |
 | Terraform IaC | Reproducible AWS provisioning | **Pending** |
 | Kyverno | Policy-as-Code enforcement | **Pending** |
+
+### Layer 3 — Agentic System
+The reasoning layer that operates on top of the GitOps substrate.
+
+| Component | Role | Status |
+|---|---|---|
+| Security Analyser | Foundation-Sec-8B analyses every PR diff | **Live** |
+| Knowledge Graph | Structured facts extracted from docs/manifests | **Live (Phase 1)** |
+| MCP Server | HTTP query interface over the knowledge graph | **Live** |
+| Langflow Flows | KG query, change impact, infra advisor, security analyser | **Live (4 flows)** |
+| Evaluation (TSR/MTTR) | Metrics framework + events log | **Live (Phase 1)** |
 
 ---
 

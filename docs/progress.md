@@ -1,6 +1,6 @@
 # Progress Tracker
 
-**Mid-Semester Status · April 2026**
+**Final Report Phase · May 2026**
 
 ---
 
@@ -11,12 +11,13 @@
 | Control System Infrastructure | idpbuilder + Gitea + Actions + ArgoCD | **Complete** |
 | Local GitOps Pipeline | End-to-end CI/CD on kind | **Complete** |
 | AWS Infrastructure | EKS + ECR + VPC + ALB | **Complete (manual)** |
-| Security Model | R1–R6 specification + partial enforcement | **Complete** |
+| Security Model | R1–R6 specification + enforcement | **Complete** |
+| Security Analyser | Foundation-Sec-8B in Gitea Actions pipeline | **Complete** |
+| Knowledge Graph | Extraction pipeline + seed graph + MCP server | **Complete (Phase 1)** |
+| Agentic Layer | Langflow flows + MCP server + metrics | **Complete (Phase 1)** |
+| Evaluation | TSR / MTTR framework + seed events | **Complete (Phase 1)** |
 | Terraform IaC | Reproducible AWS provisioning as code | **Pending** |
 | Kyverno | Policy-as-Code on cluster | **Pending** |
-| Agentic Layer | MCP servers + LangGraph workflows | **Pending** |
-| Knowledge Graph | Extraction pipeline + agent query interface | **Pending** |
-| Evaluation | TSR / MTTR / efficiency metrics | **Pending** |
 
 ---
 
@@ -158,53 +159,93 @@ See the [GitOps Security Model](security/gitops-security.md) for the full user p
 
 ---
 
+## Phase 2 — Agentic Security Analyser (Live)
+
+An agentic security analysis step is embedded directly in the CI pipeline for `sample-backend-app`. It runs automatically on every PR.
+
+### How It Works
+
+```
+PR opened / updated
+        │
+        ▼
+Gitea Actions: security-analysis.yaml
+        │
+        ├─ git diff origin/main...HEAD → /tmp/pr.diff
+        │
+        └─ python3 .gitea/scripts/security_check.py <pr> /tmp/pr.diff
+                │
+                ├─ POST /api/chat → Foundation-Sec-8B (streaming)
+                │   http://host.docker.internal:11434
+                │
+                └─ POST Gitea API → PR comment
+```
+
+### Model
+
+[Foundation-Sec-8B](https://huggingface.co/FenkoHQ/Foundation-Sec-8B) — Cisco's security-focused 8B model, running locally via Ollama. Produces structured output: Risk Level, Summary, Findings, GitOps Impact.
+
+### Verified Behaviour
+
+| Input | Risk Level | Comment Posted |
+|---|---|---|
+| Hardcoded `AWS_ACCESS_KEY_ID` + `DB_PASSWORD` | CRITICAL | Yes — by `gitea-actions` |
+| Clean code change | LOW / INFORMATIONAL | Yes |
+
+---
+
+## Phase 3 — Agentic Layer (Phase 1 Complete)
+
+The primary research contribution. Phase 1 delivers a functional knowledge graph, queryable MCP server, and four Langflow agent flows. See [Agentic Layer](agentic/index.md) for full details.
+
+### Knowledge Graph
+
+| File | Purpose | Status |
+|---|---|---|
+| `knowledge-graph/schema.py` | Pydantic v2 node/edge models | **Done** |
+| `knowledge-graph/graph.json` | Seed graph: 20+ nodes, 22 edges | **Done** |
+| `knowledge-graph/extract.py` | Claude API extraction agent (incremental, `--all` or diff-based) | **Done** |
+| `knowledge-graph/mcp_server.py` | HTTP MCP server, port 8765, 4 query tools | **Done** |
+| `.gitea/workflows/knowledge-graph-extract.yaml` | Gitea Actions trigger on doc/yaml/tf push | **Done** |
+
+### Langflow Flows (Langflow 1.5 format, importable)
+
+| Flow | What it does | Status |
+|---|---|---|
+| `agentic/security-analyser/flow.json` | PR diff → Claude security analysis → structured report | **Done (rebuilt in 1.5 format)** |
+| `agentic/knowledge-graph-query/flow.json` | Natural language Q&A against knowledge graph | **Done** |
+| `agentic/change-impact-analyzer/flow.json` | Proposed change → blast radius analysis via graph BFS | **Done** |
+| `agentic/infrastructure-advisor/flow.json` | Conversational infra advisor with KG context + security system prompt | **Done** |
+
+### Evaluation Metrics
+
+| File | Purpose | Status |
+|---|---|---|
+| `metrics/schema.py` | `TaskEvent` dataclass + `log_event()` helper | **Done** |
+| `metrics/events.json` | 8 seed events: ci-pipeline, security-analysis, kg-extraction, kg-query, change-impact, gitops-sync | **Done** |
+| `metrics/calculate.py` | `python metrics/calculate.py --by-type` → TSR + MTTR per task type | **Done** |
+
+**Seed metrics (8 events):** TSR 87.5% · MTTR 77.5s overall · MTTR 8.2s for KG queries
+
+---
+
 ## Remaining Work
 
 ### Terraform IaC
-All AWS resources (EKS, ECR, VPC, IAM, ALB Controller) were provisioned manually for validation. Terraform modules are required to make the infrastructure reproducible and to satisfy the GitOps invariant — infrastructure that isn't expressed as code isn't auditable.
+All AWS resources (EKS, ECR, VPC, IAM, ALB Controller) were provisioned manually for validation. Terraform modules are required to make the infrastructure reproducible and satisfy the GitOps invariant.
 
 ### Kyverno
-Policy-as-Code enforcement on the cluster: no privileged containers, registry restrictions, resource quotas, sandbox namespace egress restrictions. This is the second enforcement layer for the sandbox security model.
+Policy-as-Code enforcement on the cluster: no privileged containers, registry restrictions, resource quotas, sandbox namespace egress restrictions.
 
-### Agentic Layer (Phase 3 — primary research contribution)
+### Agentic Layer — Phase 2 (deferred)
 
-| Component | Description |
+| Item | Description |
 |---|---|
-| MCP servers | One per concern: state reader (read-only), ArgoCD operator, Gitea code agent |
-| LangGraph workflows | Code-first Python: deployment promotion, incident triage, issue investigation |
-| HITL interrupt points | Defined state transitions that escalate to human approval before proceeding |
-| Prompt injection defence | Tooling layer sanitises all infrastructure content before LLM context |
-| Blast radius assessment | Pre-execution check; escalates if threshold exceeded |
-
-### Knowledge Graph Extraction Pipeline
-
-```
-Push to docs/** or **.tf or **/deployment.yaml
-         │
-         ▼
-Gitea Actions workflow
-         │
-         ▼
-Claude API (structured JSON output schema)
-   { nodes: [...], edges: [...] }
-         │
-         ▼
-Merge with existing graph.json
-         │
-         ▼
-Commit updated graph back to repo
-```
-
-Phase 1: JSON in Git (`knowledge-graph/graph.json`) — no external services, fully auditable  
-Phase 2: Kuzu embedded DB built from `graph.json` for Cypher-style queries
-
-### Evaluation
-
-| Metric | Description | Baseline |
-|---|---|---|
-| Task Success Rate (TSR) | % of operational tasks completed correctly end-to-end | Manual operations + unrestricted Claude API |
-| Mean Time to Resolution (MTTR) | Time from task initiation to confirmed resolution | Manual operations baseline |
-| System Efficiency & Cost | Token count, tool calls, API cost per task | Unrestricted Claude API |
+| Langflow → security_check.py wiring | Replace direct Ollama call with `POST $LANGFLOW_URL/api/v1/run/$FLOW_ID` |
+| LangGraph workflows | Re-implement Langflow flows as Python code (required for production / auditability) |
+| Real evaluation data | Run the system end-to-end and record actual TSR/MTTR events |
+| Kuzu embedded graph DB | Phase 2: build Kuzu DB from `graph.json` for Cypher-style agent queries |
+| KG Gitea Actions | Add `ANTHROPIC_API_KEY` secret + push CIM-AI repo to Gitea to activate auto-extraction |
 
 ---
 
@@ -215,7 +256,8 @@ Phase 2: Kuzu embedded DB built from `graph.json` for Cypher-style queries
 | Literature Review + System Design | Jan–Feb 2026 | **Done** |
 | Control Plane Implementation | Feb–Mar 2026 | **Done** |
 | AWS Infrastructure + Security Model | Mar 2026 | **Done** |
-| Terraform IaC + Kyverno | Mar–Apr 2026 | **In progress** |
-| Agentic Layer Implementation | Apr 2026 | **Upcoming** |
-| Evaluation and Metric Collection | Apr–May 2026 | **Upcoming** |
-| Final Report | May 2026 | **Upcoming** |
+| Security Analyser Prototype | Apr 2026 | **Done** |
+| Agentic Layer Phase 1 (KG + Flows + Metrics) | Apr–May 2026 | **Done** |
+| Evaluation (real data collection) | May 2026 | **In progress** |
+| Final Report | May 1–12 2026 | **In progress** |
+| Terraform IaC + Kyverno | Post-submission | **Deferred** |

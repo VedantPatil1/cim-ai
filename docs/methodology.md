@@ -144,16 +144,19 @@ The local (idpbuilder/kind) setup mirrors this exactly, replacing AWS EKS → ki
 | **AWS ECR / local registry** | Container image storage | Local: implemented |
 | **Kyverno** | Policy as Code — enforces cluster guardrails | To implement |
 
-### Agentic System *(next phase — not the current focus)*
+### Agentic System *(Phase 1 implemented)*
 
-The agentic layer is deliberately deferred until the GitOps workflow is stable and measurable. The current phase establishes the substrate the agents will operate on.
+The agentic layer has been implemented as Phase 1. The GitOps substrate is proven; agents now operate on top of it.
 
-| Component | Role | Notes |
+| Component | Role | Status |
 |---|---|---|
-| **CAIPE** | Multi-agent supervisor framework | Reference architecture |
-| **MCP servers** | Scoped tool interface per agent | One MCP server per concern |
-| **Langflow** | Workflow prototyping | Prototype phase only → |
-| **LangGraph** | Code-first workflow implementation | Target for production workflows |
-| **LLM backend** | Anthropic Claude via API | Reasoning engine |
+| **MCP server** | HTTP query interface over knowledge graph (port 8765) | **Implemented** |
+| **Knowledge graph** | Structured facts extracted from docs/manifests via Claude API | **Implemented (Phase 1: JSON in Git)** |
+| **Langflow flows** | Prototyped agent workflows (security analyser, KG query, change impact, advisor) | **Implemented (4 flows, Langflow 1.5)** |
+| **Metrics** | TSR / MTTR evaluation framework + seed events | **Implemented** |
+| **LangGraph** | Code-first workflow implementation (production path) | Planned — Phase 2 |
+| **LLM backend** | Anthropic Claude via API (`claude-haiku-4-5`) | **Implemented** |
 
-**On Langflow → LangGraph:** Langflow is used for rapid prototyping of agentic pipelines. Workflows built in Langflow will be re-implemented in LangGraph (Python, code-first) before evaluation. LangGraph workflows live in Git as code, which satisfies the auditability requirement that Langflow cannot meet on its own.
+See [Agentic Layer](agentic/index.md) for architecture, usage, and demo scenarios.
+
+**On Langflow → LangGraph:** Langflow flows are the prototyping layer. They are importable, runnable, and demonstrate the agent logic. For production/evaluation, these will be re-implemented in LangGraph (Python, code-first) — because LangGraph workflows live in Git as code and satisfy the GitOps auditability requirement that Langflow cannot meet on its own.
