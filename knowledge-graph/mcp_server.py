@@ -209,10 +209,26 @@ TOOLS = {
 }
 
 TOOL_SIGNATURES = {
-    "get_service_context": {"service_name": "str"},
-    "get_environment_topology": {"env_name": "str"},
-    "get_runbook": {"runbook_name": "str"},
-    "find_policy_violations": {"service_name": "str", "proposed_change": "str"},
+    "get_service_context": {
+        "args": {"service_name": "str"},
+        "access": "read",
+        "description": "Return owner, repo, dependencies, policies, and runbooks for a service.",
+    },
+    "get_environment_topology": {
+        "args": {"env_name": "str"},
+        "access": "read",
+        "description": "Return all components, deployers, and policies for an environment.",
+    },
+    "get_runbook": {
+        "args": {"runbook_name": "str"},
+        "access": "read",
+        "description": "Return trigger conditions and step summary for a runbook.",
+    },
+    "find_policy_violations": {
+        "args": {"service_name": "str", "proposed_change": "str"},
+        "access": "read",
+        "description": "Identify policies that a proposed change to a service might violate.",
+    },
 }
 
 
@@ -234,7 +250,8 @@ class MCPHandler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self.send_json(200, {"status": "ok", "nodes": len(self.graph.nodes), "edges": len(self.graph.edges)})
         elif self.path == "/tools":
-            self.send_json(200, {"tools": TOOL_SIGNATURES})
+            tools_list = [{"name": name, **meta} for name, meta in TOOL_SIGNATURES.items()]
+            self.send_json(200, {"tools": tools_list, "write_tools": []})
         else:
             self.send_json(404, {"error": "Not found. Available: GET /health, GET /tools, POST /tool"})
 
