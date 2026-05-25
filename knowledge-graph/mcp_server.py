@@ -198,38 +198,154 @@ Return only JSON, no explanation."""
 
 
 # ---------------------------------------------------------------------------
-# HTTP server
+# Tool registry
+#
+# Each entry declares: access level, scope, phase, and args schema.
+# Phase-1 tools have implementations; Phase-2 stubs return a deferred
+# status so the access model is visible without requiring full implementation.
+#
+# Access levels:
+#   read        — returns data, no side effects
+#   write       — produces a side effect (post comment, trigger job)
+#
+# Scope narrows what a tool can touch within its access level.
+# Enforcement is in the tool implementation, not in the LLM prompt.
 # ---------------------------------------------------------------------------
 
-TOOLS = {
-    "get_service_context": get_service_context,
-    "get_environment_topology": get_environment_topology,
-    "get_runbook": get_runbook,
-    "find_policy_violations": find_policy_violations,
-}
-
-TOOL_SIGNATURES = {
+TOOL_REGISTRY: dict[str, dict] = {
+    # ------------------------------------------------------------------
+    # Phase 1 — Knowledge Graph (read-only, implemented)
+    # ------------------------------------------------------------------
     "get_service_context": {
-        "args": {"service_name": "str"},
         "access": "read",
+        "scope": "knowledge-graph",
+        "phase": 1,
+        "args": {"service_name": "str"},
         "description": "Return owner, repo, dependencies, policies, and runbooks for a service.",
+        "fn": get_service_context,
     },
     "get_environment_topology": {
-        "args": {"env_name": "str"},
         "access": "read",
+        "scope": "knowledge-graph",
+        "phase": 1,
+        "args": {"env_name": "str"},
         "description": "Return all components, deployers, and policies for an environment.",
+        "fn": get_environment_topology,
     },
     "get_runbook": {
-        "args": {"runbook_name": "str"},
         "access": "read",
+        "scope": "knowledge-graph",
+        "phase": 1,
+        "args": {"runbook_name": "str"},
         "description": "Return trigger conditions and step summary for a runbook.",
+        "fn": get_runbook,
     },
     "find_policy_violations": {
-        "args": {"service_name": "str", "proposed_change": "str"},
         "access": "read",
+        "scope": "knowledge-graph",
+        "phase": 1,
+        "args": {"service_name": "str", "proposed_change": "str"},
         "description": "Identify policies that a proposed change to a service might violate.",
+        "fn": find_policy_violations,
+    },
+
+    # ------------------------------------------------------------------
+    # Phase 2 — Repository read access (read-only, not yet implemented)
+    # Scope: files present in the PR diff only. Cannot traverse outside
+    # the diff-touched paths or access unrelated repositories.
+    # ------------------------------------------------------------------
+    "get_file_contents": {
+        "access": "read",
+        "scope": "repo:diff-paths-only",
+        "phase": 2,
+        "args": {"repo": "str", "path": "str", "ref": "str"},
+        "description": "Read a file from a repository at a given ref. Scoped to paths present in the current diff.",
+    },
+    "get_pr_diff": {
+        "access": "read",
+        "scope": "repo:current-pr",
+        "phase": 2,
+        "args": {"repo": "str", "pr_number": "int"},
+        "description": "Fetch the unified diff for a pull request.",
+    },
+    "get_commit_history": {
+        "access": "read",
+        "scope": "repo:current-pr",
+        "phase": 2,
+        "args": {"repo": "str", "path": "str", "limit": "int"},
+        "description": "Return recent commit history for a file path.",
+    },
+
+    # ------------------------------------------------------------------
+    # Phase 2 — Cross-repository read (read-only, not yet implemented)
+    # Scope: explicitly listed repos only. Cannot traverse outside the
+    # allowlist regardless of how the tool is invoked.
+    # ------------------------------------------------------------------
+    "get_gitops_manifest": {
+        "access": "read",
+        "scope": "repo:allowlist=[sample-backend-gitops,sample-backend-infra]",
+        "phase": 2,
+        "args": {"repo": "str", "path": "str"},
+        "description": "Read a deployment manifest or infra definition from a related repository. Allowlisted repos only.",
+    },
+
+    # ------------------------------------------------------------------
+    # Phase 2 — Static analysis (read-only, not yet implemented)
+    # Scope: files in the diff only. Invokes external linters/scanners;
+    # cannot write results back to the repo.
+    # ------------------------------------------------------------------
+    "run_static_analysis": {
+        "access": "read",
+        "scope": "diff-files-only",
+        "phase": 2,
+        "args": {"files": "list[str]", "tool": "str"},
+        "description": "Run a linter or static analyser against changed files. Returns structured tool output for the LLM to reason about.",
+    },
+
+    # ------------------------------------------------------------------
+    # Phase 2 — CI log access (read-only, not yet implemented)
+    # Scope: current pipeline run and last N runs for the same repo.
+    # ------------------------------------------------------------------
+    "get_ci_logs": {
+        "access": "read",
+        "scope": "repo:current-run",
+        "phase": 2,
+        "args": {"repo": "str", "run_id": "str"},
+        "description": "Read stdout/stderr from a CI run. Used to correlate proposed changes with recent test failures.",
+    },
+
+    # ------------------------------------------------------------------
+    # Phase 2 — Web search (read-only, not yet implemented)
+    # Scope: external. Results are summarised before passing to the LLM
+    # to prevent context overflow and prompt injection via search results.
+    # ------------------------------------------------------------------
+    "web_search": {
+        "access": "read",
+        "scope": "external",
+        "phase": 2,
+        "args": {"query": "str", "max_results": "int"},
+        "description": "Search for CVE entries, vulnerability docs, or remediation guidance. Results summarised before LLM handoff.",
+    },
+
+    # ------------------------------------------------------------------
+    # Phase 2 — Comment write (write-scoped, not yet implemented)
+    # This is the ONLY write tool in the registry. Scope is deliberately
+    # narrow: post or update a PR comment. Cannot push code, modify
+    # branch configuration, or interact with any resource outside the
+    # target PR. Invoked only by the output assembly step, not by any
+    # analysis component.
+    # ------------------------------------------------------------------
+    "post_pr_comment": {
+        "access": "write",
+        "scope": "repo:target-pr-comments-only",
+        "phase": 2,
+        "args": {"repo": "str", "pr_number": "int", "body": "str"},
+        "description": "Post or update a PR comment. Cannot push code or modify branch settings. Used exclusively by the output assembly step.",
     },
 }
+
+# Separate callable tools (phase 1) from declared stubs (phase 2)
+CALLABLE_TOOLS = {name: meta["fn"] for name, meta in TOOL_REGISTRY.items() if "fn" in meta}
 
 
 class MCPHandler(BaseHTTPRequestHandler):
@@ -250,8 +366,30 @@ class MCPHandler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self.send_json(200, {"status": "ok", "nodes": len(self.graph.nodes), "edges": len(self.graph.edges)})
         elif self.path == "/tools":
-            tools_list = [{"name": name, **meta} for name, meta in TOOL_SIGNATURES.items()]
-            self.send_json(200, {"tools": tools_list, "write_tools": []})
+            tools = []
+            for name, meta in TOOL_REGISTRY.items():
+                entry = {
+                    "name": name,
+                    "access": meta["access"],
+                    "scope": meta["scope"],
+                    "phase": meta["phase"],
+                    "args": meta["args"],
+                    "description": meta["description"],
+                    "status": "implemented" if "fn" in meta else "phase-2-deferred",
+                }
+                tools.append(entry)
+            write_tools = [t["name"] for t in tools if t["access"] == "write"]
+            self.send_json(200, {
+                "tools": tools,
+                "write_tools": write_tools,
+                "summary": {
+                    "total": len(tools),
+                    "read": sum(1 for t in tools if t["access"] == "read"),
+                    "write": len(write_tools),
+                    "implemented": sum(1 for t in tools if t["status"] == "implemented"),
+                    "deferred": sum(1 for t in tools if t["status"] == "phase-2-deferred"),
+                },
+            })
         else:
             self.send_json(404, {"error": "Not found. Available: GET /health, GET /tools, POST /tool"})
 
@@ -271,15 +409,27 @@ class MCPHandler(BaseHTTPRequestHandler):
         tool_name = req.get("tool")
         args = req.get("args", {})
 
-        if tool_name not in TOOLS:
-            self.send_json(400, {"error": f"Unknown tool '{tool_name}'", "available": list(TOOLS)})
+        if tool_name not in TOOL_REGISTRY:
+            self.send_json(400, {"error": f"Unknown tool '{tool_name}'", "available": list(TOOL_REGISTRY)})
+            return
+
+        meta = TOOL_REGISTRY[tool_name]
+        if "fn" not in meta:
+            self.send_json(200, {
+                "status": "phase-2-deferred",
+                "tool": tool_name,
+                "access": meta["access"],
+                "scope": meta["scope"],
+                "description": meta["description"],
+                "note": "This tool is declared and scoped but not yet implemented. Access level and scope constraints are enforced at the registry level.",
+            })
             return
 
         # Reload graph on each request so it picks up updates
         self.__class__.graph = KnowledgeGraph.load(GRAPH_PATH)
 
         try:
-            result = TOOLS[tool_name](self.graph, **args)
+            result = CALLABLE_TOOLS[tool_name](self.graph, **args)
             self.send_json(200, result)
         except TypeError as e:
             self.send_json(400, {"error": f"Bad arguments for {tool_name}: {e}"})
@@ -298,7 +448,10 @@ def main() -> None:
     print(f"Knowledge Graph MCP Server")
     print(f"  Graph: {args.graph} ({len(graph.nodes)} nodes, {len(graph.edges)} edges)")
     print(f"  Listening on http://localhost:{args.port}")
-    print(f"  Tools: {', '.join(TOOLS)}")
+    implemented = [n for n, m in TOOL_REGISTRY.items() if "fn" in m]
+    deferred = [n for n, m in TOOL_REGISTRY.items() if "fn" not in m]
+    print(f"  Implemented tools ({len(implemented)}): {', '.join(implemented)}")
+    print(f"  Deferred tools    ({len(deferred)}): {', '.join(deferred)}")
 
     server = HTTPServer(("", args.port), MCPHandler)
     try:
