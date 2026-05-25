@@ -16,3 +16,29 @@ tasks:
     desc: Serve the documentation
     cmds:
       - uv run zensical serve
+
+  mcp-deploy:
+    desc: Deploy MCP server to the kind cluster (updates ConfigMap from local source)
+    cmds:
+      - |
+        kubectl create configmap mcp-server-src -n mcp-server \
+          --from-file=knowledge-graph/mcp_server.py \
+          --from-file=knowledge-graph/schema.py \
+          --from-file=knowledge-graph/graph.json \
+          --dry-run=client -o yaml | kubectl apply -f -
+        kubectl apply -f control-system-infrastructure/cnoe-stack/packages/mcp-server/manifests/
+        kubectl rollout restart deployment/mcp-server -n mcp-server
+        kubectl rollout status deployment/mcp-server -n mcp-server --timeout=60s
+
+  mcp-serve:
+    desc: Start the knowledge graph MCP server on localhost:8765
+    dir: knowledge-graph
+    cmds:
+      - |
+        if ! python3 -c "import pydantic" 2>/dev/null; then
+          python3 -m venv .venv
+          .venv/bin/pip install pydantic --quiet
+        fi
+        PYTHON=$(test -f .venv/bin/python3 && echo .venv/bin/python3 || echo python3)
+        echo "Starting MCP server on http://localhost:8765"
+        exec $PYTHON mcp_server.py

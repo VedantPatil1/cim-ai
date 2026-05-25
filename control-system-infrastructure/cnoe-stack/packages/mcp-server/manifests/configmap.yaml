@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-server-src
+  namespace: mcp-server
+data:
+  # graph.json and the Python source files are mounted from this ConfigMap.
+  # In production these would come from a Git-synced volume (Argo CD manages
+  # the ConfigMap; the graph is updated by the knowledge-graph-extract workflow).
+  #
+  # To update: kubectl create configmap mcp-server-src -n mcp-server \
+  #   --from-file=knowledge-graph/mcp_server.py \
+  #   --from-file=knowledge-graph/schema.py \
+  #   --from-file=knowledge-graph/graph.json \
+  #   --dry-run=client -o yaml | kubectl apply -f -
+  placeholder: "replace-with-kustomize-or-kubectl-create-configmap"
