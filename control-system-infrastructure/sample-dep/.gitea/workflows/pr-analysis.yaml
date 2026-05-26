@@ -1,0 +1,59 @@
+name: PR Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq && apt-get install -y -qq python3 python3-pip curl
+          pip3 install --quiet anthropic
+
+      - name: Run infrastructure analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITEA_TOKEN:        ${{ secrets.GITHUB_TOKEN }}
+          GITEA_URL:          https://cnoe.localtest.me:8443/gitea
+          REPO:               ${{ github.repository }}
+          PR_NUMBER:          ${{ github.event.pull_request.number }}
+        run: python3 .gitea/scripts/analyze_infra.py
+
+      - name: Publish metrics to Gitea release
+        if: always()
+        continue-on-error: true
+        env:
+          GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA:    ${{ github.event.pull_request.head.sha }}
+          PR_NUM:      ${{ github.event.pull_request.number }}
+        run: |
+          [ -f /tmp/infra-analysis-metrics.json ] || exit 0
+
+          RELEASE=$(curl -sk -X POST \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"ci-${HEAD_SHA}\",\"name\":\"CI ${HEAD_SHA}\",\"body\":\"Automated CI build\",\"draft\":false,\"prerelease\":true}")
+          RELEASE_ID=$(echo "$RELEASE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+
+          [ -z "$RELEASE_ID" ] && RELEASE_ID=$(curl -sk \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases/tags/ci-${HEAD_SHA}" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+
+          [ -z "$RELEASE_ID" ] && echo "Warning: no release found" && exit 0
+
+          curl -sk -X POST \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            -F "attachment=@/tmp/infra-analysis-metrics.json;type=application/json;filename=infra-analysis-metrics-pr${PR_NUM}.json" \
+            > /dev/null
+          echo "Metrics published to release ${RELEASE_ID}"

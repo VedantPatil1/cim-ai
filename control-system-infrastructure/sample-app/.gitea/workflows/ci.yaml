@@ -31,31 +31,6 @@ jobs:
         run: python3 -m pytest tests/ -v
 
   # ------------------------------------------------------------------
-  # PR: semantic drift analysis (runs alongside check, not blocked by it)
-  # ------------------------------------------------------------------
-  analyse:
-    runs-on: ubuntu-latest
-    container:
-      image: node:20-bullseye
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          apt-get update -qq && apt-get install -y -qq python3 python3-pip
-          pip3 install --quiet anthropic
-
-      - name: Run PR analysis
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITEA_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
-          GITEA_URL:         https://cnoe.localtest.me:8443/gitea
-          REPO:              ${{ github.repository }}
-          PR_NUMBER:         ${{ github.event.pull_request.number }}
-        run: python3 .gitea/scripts/analyze_pr.py
-
-  # ------------------------------------------------------------------
   # Build → push to Gitea OCI + AWS ECR → update both gitops overlays
   # Only runs on main push, after tests pass.
   # ------------------------------------------------------------------
