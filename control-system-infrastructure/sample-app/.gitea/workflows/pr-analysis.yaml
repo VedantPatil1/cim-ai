@@ -26,3 +26,12 @@ jobs:
           REPO:               ${{ github.repository }}
           PR_NUMBER:          ${{ github.event.pull_request.number }}
         run: python3 .gitea/scripts/analyze_pr.py
+
+      - name: Upload token metrics artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v3
+        with:
+          name: pr-analysis-metrics-pr${{ github.event.pull_request.number }}
+          path: /tmp/pr-analysis-metrics.json
+          retention-days: 30

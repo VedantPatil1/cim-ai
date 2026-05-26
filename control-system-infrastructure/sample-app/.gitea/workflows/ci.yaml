@@ -132,3 +132,19 @@ jobs:
           git add overlays/
           git diff --cached --quiet || \
             { git commit -m "ci: deploy ${{ github.sha }}" && git push; }
+
+      # ---- Artifact: downloadable image tarball ---------------------
+      - name: Export image tarball
+        continue-on-error: true
+        run: |
+          docker save sample-backend:${{ github.sha }} | gzip > /tmp/image.tar.gz
+          echo "Image artifact size: $(du -sh /tmp/image.tar.gz | cut -f1)"
+
+      - name: Upload image artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image-${{ github.sha }}
+          path: /tmp/image.tar.gz
+          retention-days: 7

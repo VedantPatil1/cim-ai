@@ -30,3 +30,12 @@ jobs:
           LANGFLOW_URL: http://host.docker.internal:7860
           FLOW_ID: ${{ secrets.LANGFLOW_FLOW_ID }}
         run: python3 .gitea/scripts/security_check.py
+
+      - name: Upload security metrics artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-analysis-metrics-pr${{ github.event.pull_request.number }}
+          path: /tmp/security-analysis-metrics.json
+          retention-days: 30

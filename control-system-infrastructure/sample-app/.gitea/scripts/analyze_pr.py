@@ -18,6 +18,7 @@ Required env vars:
 """
 
 import base64
+import datetime
 import difflib
 import json
 import os
@@ -307,6 +308,28 @@ def main() -> None:
     print("\n--- Analysis ---")
     print(analysis)
     print("--- End ---\n")
+
+    # Write token metrics — does not affect main logic
+    try:
+        metrics = {
+            "workflow": "pr-analysis",
+            "model": "claude-haiku-4-5-20251001",
+            "pr": f"{REPO}#{PR_NUMBER}",
+            "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "input_tokens": message.usage.input_tokens,
+            "output_tokens": message.usage.output_tokens,
+            "total_tokens": message.usage.input_tokens + message.usage.output_tokens,
+            "estimated_cost_usd": round(
+                (message.usage.input_tokens / 1_000_000) * 0.80
+                + (message.usage.output_tokens / 1_000_000) * 4.00,
+                6,
+            ),
+        }
+        with open("/tmp/pr-analysis-metrics.json", "w") as f:
+            json.dump(metrics, f, indent=2)
+        print(f"Metrics: {metrics['total_tokens']} tokens, ${metrics['estimated_cost_usd']:.6f} USD")
+    except Exception as e:
+        print(f"Warning: could not write metrics: {e}")
 
     post_comment(analysis)
     print("Done.")

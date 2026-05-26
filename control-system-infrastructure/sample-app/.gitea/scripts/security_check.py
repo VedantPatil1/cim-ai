@@ -3,6 +3,7 @@
 Security analyser: diffs the PR, sends to Langflow (security-analysis flow),
 posts the structured analysis as a Gitea PR comment.
 """
+import datetime
 import json
 import os
 import subprocess
@@ -104,6 +105,25 @@ def main():
 ---
 *Automated analysis by [qwen2.5-coder:7b](https://ollama.com/library/qwen2.5-coder) via [Langflow](http://localhost:7860). Review findings carefully — this is AI-generated output.*
 """
+    # Write token metrics — does not affect main logic
+    try:
+        metrics = {
+            "workflow": "security-analysis",
+            "model": "FenkoHQ/Foundation-Sec-8B (via Langflow/Ollama)",
+            "pr": f"{REPO}#{PR_NUMBER}",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "input_chars": len(diff),
+            "output_chars": len(analysis),
+            "estimated_input_tokens": len(diff) // 4,
+            "estimated_output_tokens": len(analysis) // 4,
+            "note": "token counts estimated (chars/4); exact counts unavailable through Langflow",
+        }
+        with open("/tmp/security-analysis-metrics.json", "w") as f:
+            json.dump(metrics, f, indent=2)
+        print(f"Metrics: ~{metrics['estimated_input_tokens']} in / ~{metrics['estimated_output_tokens']} out tokens")
+    except Exception as e:
+        print(f"Warning: could not write metrics: {e}")
+
     print("=== Posting PR comment ===")
     post_comment(comment)
 
