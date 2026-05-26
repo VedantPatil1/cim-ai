@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-backend-aws
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://my-gitea-http.gitea.svc.cluster.local:3000/giteaAdmin/sample-backend-gitops
+    targetRevision: main
+    path: overlays/aws
+  destination:
+    # Fill in after running: aws eks update-kubeconfig --name sample-api-cluster --region us-east-1
+    # then: argocd cluster add sample-api-cluster --name aws-eks
+    # ArgoCD will replace this with the registered cluster server URL.
+    server: https://REPLACE_WITH_EKS_CLUSTER_ENDPOINT
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

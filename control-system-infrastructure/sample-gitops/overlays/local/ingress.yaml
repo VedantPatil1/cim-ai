@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sample-backend
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cnoe.localtest.me
+      http:
+        paths:
+          - path: /sample
+            pathType: Prefix
+            backend:
+              service:
+                name: sample-backend
+                port:
+                  number: 80

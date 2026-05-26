@@ -7,86 +7,119 @@ on:
     branches: [main]
 
 env:
-  REGISTRY: cnoe.localtest.me:8443
-  IMAGE: cnoe.localtest.me:8443/giteaadmin/sample-backend-app
+  GITEA_REGISTRY: cnoe.localtest.me:8443
+  GITEA_IMAGE:    cnoe.localtest.me:8443/giteaadmin/sample-backend-app
+  ECR_IMAGE:      065571033838.dkr.ecr.us-east-1.amazonaws.com/sample-api-ecr
 
 jobs:
   # ------------------------------------------------------------------
-  # Gate: tests must pass before any image is built or pushed
+  # Gate: all tests must pass before any image is built
   # ------------------------------------------------------------------
   check:
     runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install pip
-        run: apt-get update -q && apt-get install -y -q python3-pip
-
       - name: Install dependencies
-        run: pip3 install -r requirements.txt httpx pytest
+        run: |
+          apt-get update -qq && apt-get install -y -qq python3 python3-pip
+          pip3 install -r requirements.txt httpx pytest -q
 
       - name: Run tests
         run: python3 -m pytest tests/ -v
 
   # ------------------------------------------------------------------
-  # Build image and push to Gitea container registry (main only)
+  # PR: semantic drift analysis (runs alongside check, not blocked by it)
+  # ------------------------------------------------------------------
+  analyse:
+    runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq && apt-get install -y -qq python3 python3-pip
+          pip3 install --quiet anthropic
+
+      - name: Run PR analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITEA_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
+          GITEA_URL:         https://cnoe.localtest.me:8443/gitea
+          REPO:              ${{ github.repository }}
+          PR_NUMBER:         ${{ github.event.pull_request.number }}
+        run: python3 .gitea/scripts/analyze_pr.py
+
+  # ------------------------------------------------------------------
+  # Build → push to Gitea OCI + AWS ECR → update both gitops overlays
+  # Only runs on main push, after tests pass.
   # ------------------------------------------------------------------
   build-push:
     runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye
     needs: check
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
-      # Job containers run inside dind. dind's bridge gateway (172.17.0.1) is
-      # reachable from inside any job container and has the Docker daemon on :2375.
-      - name: Set up Docker
+      - name: Set up Docker and AWS CLI
         run: |
-          apt-get update -q
-          apt-get install -y -q docker.io iproute2
+          apt-get update -qq && apt-get install -y -qq docker.io iproute2 awscli
           DIND_HOST=$(ip route show default | awk '/default/{print $3}')
           echo "DOCKER_HOST=tcp://${DIND_HOST}:2375" >> $GITHUB_ENV
-
-      - name: Verify Docker + configure registry
-        run: |
-          docker info --format '{{.ServerVersion}}'
+          # Resolve Gitea's nginx ingress inside the runner container
           echo "10.96.161.49 cnoe.localtest.me" >> /etc/hosts
 
+      - name: Verify Docker daemon
+        run: docker info --format '{{.ServerVersion}}'
+
       - name: Build image
-        run: |
-          docker build \
-            -t ${{ env.IMAGE }}:${{ github.sha }} \
-            -t ${{ env.IMAGE }}:latest \
-            .
+        run: docker build -t sample-backend:${{ github.sha }} .
 
-      - name: Login to Gitea registry
+      # ---- Local target: Gitea OCI registry -------------------------
+      - name: Push to Gitea OCI
         run: |
+          docker tag sample-backend:${{ github.sha }} ${{ env.GITEA_IMAGE }}:${{ github.sha }}
           echo "${{ secrets.CI_TOKEN }}" | \
-            docker login ${{ env.REGISTRY }} -u giteaAdmin --password-stdin
+            docker login ${{ env.GITEA_REGISTRY }} -u giteaAdmin --password-stdin
+          docker push ${{ env.GITEA_IMAGE }}:${{ github.sha }}
 
-      - name: Push image
+      # ---- AWS target: ECR ------------------------------------------
+      - name: Push to AWS ECR
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION:            us-east-1
         run: |
-          docker push ${{ env.IMAGE }}:${{ github.sha }}
-          docker push ${{ env.IMAGE }}:latest
+          aws ecr get-login-password --region us-east-1 | \
+            docker login --username AWS --password-stdin \
+              065571033838.dkr.ecr.us-east-1.amazonaws.com
+          docker tag sample-backend:${{ github.sha }} ${{ env.ECR_IMAGE }}:${{ github.sha }}
+          docker push ${{ env.ECR_IMAGE }}:${{ github.sha }}
 
-      # ------------------------------------------------------------------
-      # Update the image tag in the GitOps repo → triggers ArgoCD sync
-      # ------------------------------------------------------------------
-      - name: Update gitops repo
+      # ---- GitOps update: both overlays in one commit ---------------
+      - name: Update GitOps overlays
         run: |
           git config --global user.email "ci@cnoe.local"
-          git config --global user.name "CI Bot"
+          git config --global user.name  "CI Bot"
           git config --global http.sslVerify false
 
           git clone \
             http://giteaAdmin:${{ secrets.CI_TOKEN }}@my-gitea-http.gitea.svc.cluster.local:3000/giteaAdmin/sample-backend-gitops.git \
-            gitops
+            /tmp/gitops
 
-          cd gitops
-          sed -i \
-            "s|image: ${{ env.IMAGE }}:.*|image: ${{ env.IMAGE }}:${{ github.sha }}|" \
-            deployment.yaml
+          cd /tmp/gitops
 
-          git add deployment.yaml
+          # Update image tag for both deployment targets
+          sed -i "s|newTag: .*|newTag: ${{ github.sha }}|" overlays/local/kustomization.yaml
+          sed -i "s|newTag: .*|newTag: ${{ github.sha }}|" overlays/aws/kustomization.yaml
+
+          git add overlays/
           git diff --cached --quiet || \
-            git commit -m "ci: deploy ${{ github.sha }}" && git push
+            { git commit -m "ci: deploy ${{ github.sha }}" && git push; }

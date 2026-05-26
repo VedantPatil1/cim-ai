@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-backend-local
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://my-gitea-http.gitea.svc.cluster.local:3000/giteaAdmin/sample-backend-gitops
+    targetRevision: main
+    path: overlays/local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

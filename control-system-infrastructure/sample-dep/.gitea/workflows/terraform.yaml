@@ -1,0 +1,96 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.tf'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.tf'
+
+# Prevent concurrent applies on the same environment
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye
+    env:
+      AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION:            us-east-1
+      TF_VERSION:            "1.9.0"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Terraform
+        run: |
+          apt-get update -qq && apt-get install -y -qq unzip curl
+          curl -fsSLo /tmp/tf.zip \
+            https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+          unzip -q /tmp/tf.zip -d /usr/local/bin
+          terraform version
+
+      # ---- Initialise all modules -----------------------------------
+      - name: Terraform Init (vpc)
+        working-directory: vpc
+        run: terraform init -input=false
+
+      - name: Terraform Init (ecr)
+        working-directory: ecr
+        run: terraform init -input=false
+
+      - name: Terraform Init (eks)
+        working-directory: eks
+        run: terraform init -input=false
+
+      # ---- Validate -------------------------------------------------
+      - name: Terraform Validate
+        run: |
+          terraform -chdir=vpc validate
+          terraform -chdir=ecr validate
+          terraform -chdir=eks validate
+
+      # ---- Plan (PR only) ------------------------------------------
+      - name: Terraform Plan
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "### VPC Plan" && terraform -chdir=vpc plan -no-color
+          echo "### ECR Plan" && terraform -chdir=ecr plan -no-color
+          echo "### EKS Plan" && terraform -chdir=eks plan -no-color
+
+      # ---- Apply (main push only, sequential: vpc → ecr → eks) -----
+      - name: Terraform Apply — VPC
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: vpc
+        run: terraform apply -auto-approve -input=false
+
+      - name: Terraform Apply — ECR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: ecr
+        run: terraform apply -auto-approve -input=false
+
+      - name: Terraform Apply — EKS
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: eks
+        run: terraform apply -auto-approve -input=false
+
+      # ---- Emit cluster endpoint for ArgoCD registration -----------
+      - name: Print cluster endpoint
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: eks
+        run: |
+          echo "=== EKS cluster provisioned ==="
+          terraform output cluster_name
+          terraform output cluster_endpoint
+          echo ""
+          echo "Next step — register with ArgoCD (from your laptop):"
+          echo "  aws eks update-kubeconfig --name \$(terraform output -raw cluster_name) --region us-east-1"
+          echo "  argocd cluster add sample-api-cluster --name aws-eks"
+          echo "  kubectl apply -f argocd/app-aws.yaml  (update server: field first)"
