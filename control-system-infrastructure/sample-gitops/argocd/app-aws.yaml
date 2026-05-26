@@ -13,7 +13,7 @@ spec:
     # Fill in after running: aws eks update-kubeconfig --name sample-api-cluster --region us-east-1
     # then: argocd cluster add sample-api-cluster --name aws-eks
     # ArgoCD will replace this with the registered cluster server URL.
-    server: https://REPLACE_WITH_EKS_CLUSTER_ENDPOINT
+    server: https://04B237A468B39A1FAC79A8CD50402C98.gr7.us-east-1.eks.amazonaws.com
     namespace: staging
   syncPolicy:
     automated:

@@ -27,9 +27,6 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
-  assume_role {
-    role_arn = "arn:aws:iam::065571033838:role/sample-api-terraform-executor-role"
-  }
 }
 
 # Read VPC outputs from remote state — no hardcoded subnet IDs
@@ -53,6 +50,7 @@ module "eks" {
   subnet_ids = data.terraform_remote_state.vpc.outputs.private_subnet_ids
 
   cluster_endpoint_public_access = true
+  bootstrap_self_managed_addons  = false
 
   fargate_profiles = {
     kube_system = {

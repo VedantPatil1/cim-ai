@@ -19,9 +19,6 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
-  assume_role {
-    role_arn = "arn:aws:iam::065571033838:role/sample-api-terraform-executor-role"
-  }
 }
 
 resource "aws_ecr_repository" "main" {

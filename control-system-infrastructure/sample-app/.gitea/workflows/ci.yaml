@@ -80,7 +80,7 @@ jobs:
         run: docker info --format '{{.ServerVersion}}'
 
       - name: Build image
-        run: docker build -t sample-backend:${{ github.sha }} .
+        run: docker build --platform linux/amd64 -t sample-backend:${{ github.sha }} .
 
       # ---- Local target: Gitea OCI registry -------------------------
       - name: Push to Gitea OCI

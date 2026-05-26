@@ -3,15 +3,15 @@ kind: Ingress
 metadata:
   name: sample-backend
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
   rules:
     - host: cnoe.localtest.me
       http:
         paths:
-          - path: /sample
-            pathType: Prefix
+          - path: /sample(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: sample-backend

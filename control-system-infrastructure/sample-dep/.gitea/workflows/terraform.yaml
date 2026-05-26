@@ -29,6 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Assume terraform executor role
+        run: |
+          CREDS=$(aws sts assume-role \
+            --role-arn arn:aws:iam::065571033838:role/sample-api-terraform-executor-role \
+            --role-session-name gitea-tf-${{ github.sha }} \
+            --query Credentials --output json)
+          echo "AWS_ACCESS_KEY_ID=$(echo $CREDS     | python3 -c "import json,sys; print(json.load(sys.stdin)['AccessKeyId'])")"     >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo $CREDS | python3 -c "import json,sys; print(json.load(sys.stdin)['SecretAccessKey'])")" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo $CREDS     | python3 -c "import json,sys; print(json.load(sys.stdin)['SessionToken'])")"     >> $GITHUB_ENV
+
       - name: Install Terraform
         run: |
           apt-get update -qq && apt-get install -y -qq unzip curl
