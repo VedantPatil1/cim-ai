@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-backend
+  namespace: sample-staging
+spec:
+  # DRIFT 1: replicas dropped to 1 — policy requires minimum 2
+  replicas: 1
+  # DRIFT 2: strategy changed to Recreate — policy requires RollingUpdate with maxUnavailable: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sample-backend
+  template:
+    metadata:
+      labels:
+        app: sample-backend
+    spec:
+      containers:
+        - name: api
+          # DRIFT 3: using "latest" tag — policy requires immutable git SHA tag
+          image: cnoe.localtest.me:8443/giteaadmin/sample-backend-app:latest
+          ports:
+            - containerPort: 8080
+          # DRIFT 4: readinessProbe removed — policy requires both liveness and readiness probes
+          # DRIFT 5: no resource requests/limits — policy requires explicit CPU and memory limits
