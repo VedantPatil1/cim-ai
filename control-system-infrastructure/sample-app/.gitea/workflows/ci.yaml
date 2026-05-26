@@ -133,18 +133,36 @@ jobs:
           git diff --cached --quiet || \
             { git commit -m "ci: deploy ${{ github.sha }}" && git push; }
 
-      # ---- Artifact: downloadable image tarball ---------------------
-      - name: Export image tarball
+      # ---- Artifact: downloadable image tarball → Gitea release ----
+      - name: Export and publish image artifact
         continue-on-error: true
         run: |
           docker save sample-backend:${{ github.sha }} | gzip > /tmp/image.tar.gz
           echo "Image artifact size: $(du -sh /tmp/image.tar.gz | cut -f1)"
 
-      - name: Upload image artifact
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v3
-        with:
-          name: docker-image-${{ github.sha }}
-          path: /tmp/image.tar.gz
-          retention-days: 7
+          # Create a pre-release for this SHA (idempotent: ignore 422 if exists)
+          RELEASE=$(curl -sk -X POST \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases" \
+            -H "Authorization: token ${{ secrets.CI_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"ci-${{ github.sha }}\",\"name\":\"CI ${{ github.sha }}\",\"body\":\"Automated CI build — image: ${{ env.ECR_IMAGE }}:${{ github.sha }}\",\"draft\":false,\"prerelease\":true}")
+          RELEASE_ID=$(echo "$RELEASE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null)
+
+          # If release already exists, fetch its ID
+          if [ -z "$RELEASE_ID" ]; then
+            RELEASE_ID=$(curl -sk \
+              "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases/tags/ci-${{ github.sha }}" \
+              -H "Authorization: token ${{ secrets.CI_TOKEN }}" \
+              | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+          fi
+
+          if [ -n "$RELEASE_ID" ]; then
+            curl -sk -X POST \
+              "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets" \
+              -H "Authorization: token ${{ secrets.CI_TOKEN }}" \
+              -F "attachment=@/tmp/image.tar.gz;type=application/gzip;filename=docker-image-${{ github.sha }}.tar.gz" \
+              > /dev/null
+            echo "Image artifact published to release ${RELEASE_ID}"
+          else
+            echo "Warning: could not create/find release — skipping artifact upload"
+          fi

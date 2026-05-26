@@ -27,11 +27,34 @@ jobs:
           PR_NUMBER:          ${{ github.event.pull_request.number }}
         run: python3 .gitea/scripts/analyze_pr.py
 
-      - name: Upload token metrics artifact
+      - name: Publish token metrics to Gitea release
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v3
-        with:
-          name: pr-analysis-metrics-pr${{ github.event.pull_request.number }}
-          path: /tmp/pr-analysis-metrics.json
-          retention-days: 30
+        env:
+          GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUM:  ${{ github.event.pull_request.number }}
+        run: |
+          [ -f /tmp/pr-analysis-metrics.json ] || exit 0
+
+          # Create release for this SHA (idempotent)
+          RELEASE=$(curl -sk -X POST \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"ci-${HEAD_SHA}\",\"name\":\"CI ${HEAD_SHA}\",\"body\":\"Automated CI build\",\"draft\":false,\"prerelease\":true}")
+          RELEASE_ID=$(echo "$RELEASE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+
+          [ -z "$RELEASE_ID" ] && RELEASE_ID=$(curl -sk \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases/tags/ci-${HEAD_SHA}" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+
+          [ -z "$RELEASE_ID" ] && echo "Warning: no release found — skipping" && exit 0
+
+          curl -sk -X POST \
+            "https://cnoe.localtest.me:8443/gitea/api/v1/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            -F "attachment=@/tmp/pr-analysis-metrics.json;type=application/json;filename=pr-analysis-metrics-pr${PR_NUM}.json" \
+            > /dev/null
+          echo "Metrics published to release ${RELEASE_ID}"
