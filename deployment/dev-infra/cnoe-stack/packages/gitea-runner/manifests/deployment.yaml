@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea-runner
+  namespace: gitea-runner
+  labels:
+    app: gitea-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitea-runner
+  template:
+    metadata:
+      labels:
+        app: gitea-runner
+    spec:
+      serviceAccountName: gitea-runner
+
+      initContainers:
+
+        # 1. Read the Gitea admin password from the gitea-credential Secret via kubectl.
+        - name: get-gitea-creds
+          image: bitnami/kubectl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              kubectl get secret -n gitea gitea-credential \
+                -o jsonpath='{.data.password}' | base64 -d > /shared/gitea-password
+              echo "Password written."
+          volumeMounts:
+            - name: shared-init
+              mountPath: /shared
+
+        # 2. Fetch the runner registration token from Gitea using the in-cluster HTTP URL.
+        #    IMPORTANT: cnoe.localtest.me resolves to 127.0.0.1 inside the cluster (loopback),
+        #    so the external URL cannot be used here. Always use the cluster-internal service.
+        #    Skips if the runner is already registered (.runner file exists on PVC).
+        - name: get-runner-token
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /data/.runner ]; then
+                echo "Already registered, skipping."
+                exit 0
+              fi
+              GITEA_PASS=$(cat /shared/gitea-password)
+              TOKEN=$(curl -sf \
+                -u "giteaAdmin:${GITEA_PASS}" \
+                http://my-gitea-http.gitea.svc.cluster.local:3000/api/v1/admin/runners/registration-token \
+                | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+              if [ -z "$TOKEN" ]; then
+                echo "ERROR: empty token — check Gitea is reachable and Actions is enabled."
+                exit 1
+              fi
+              echo "$TOKEN" > /shared/runner-token
+              echo "Token written."
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+            - name: shared-init
+              mountPath: /shared
+
+        # 3. Register the runner with Gitea (in-cluster HTTP URL).
+        #    workingDir=/data so act_runner writes .runner to the PVC (persists across restarts).
+        - name: register-runner
+          image: gitea/act_runner:latest
+          workingDir: /data
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /data/.runner ]; then
+                echo "Already registered, skipping."
+                exit 0
+              fi
+              TOKEN=$(cat /shared/runner-token)
+              act_runner register \
+                --no-interactive \
+                --instance http://my-gitea-http.gitea.svc.cluster.local:3000 \
+                --token "${TOKEN}" \
+                --name in-cluster-runner \
+                --labels "ubuntu-latest:docker://node:20-bullseye"
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+            - name: shared-init
+              mountPath: /shared
+              readOnly: true
+
+      containers:
+
+        # Main: act_runner daemon. Reads .runner registration from PVC.
+        - name: runner
+          image: gitea/act_runner:latest
+          workingDir: /data
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              sleep 5
+              exec act_runner daemon
+          env:
+            - name: DOCKER_HOST
+              value: tcp://localhost:2375
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+
+        # Sidecar: Docker-in-Docker (privileged, TLS disabled for simplicity).
+        - name: dind
+          image: docker:24-dind
+          securityContext:
+            privileged: true
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          volumeMounts:
+            - name: dind-storage
+              mountPath: /var/lib/docker
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+
+      volumes:
+        - name: runner-data
+          persistentVolumeClaim:
+            claimName: gitea-runner-data
+        - name: shared-init
+          emptyDir: {}
+        - name: dind-storage
+          emptyDir: {}

@@ -11,3 +11,23 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+
+  dev-infra:up:
+    desc: Bootstrap the local CNOE dev-infra stack (Gitea + ArgoCD + gitea-runner)
+    cmds:
+      - |
+        idpbuilder create \
+          --recreate \
+          --use-path-routing \
+          -c gitea:./deployment/dev-infra/cnoe-stack/gitea-config/override.yaml \
+          -p deployment/dev-infra/cnoe-stack/packages/gitea-runner
+
+  dev-infra:creds:
+    desc: Print the Gitea admin username/password for the local dev-infra stack
+    cmds:
+      - idpbuilder get secrets
+
+  dev-infra:down:
+    desc: Tear down the local dev-infra IDP cluster
+    cmds:
+      - idpbuilder delete --name localdev
